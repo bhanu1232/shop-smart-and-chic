@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShoppingCart, Search, Star, Heart, Grid, List, User, Menu, Filter, X } from "lucide-react";
+import { ShoppingCart, Search, Star, Heart, Grid, List, User, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Products = () => {
   const navigate = useNavigate();
@@ -15,7 +16,10 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
   const [priceRange, setPriceRange] = useState("all");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [colorsOpen, setColorsOpen] = useState(false);
+  const [sizeOpen, setSizeOpen] = useState(false);
 
   const products = [
     {
@@ -112,7 +116,7 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header - Same as homepage */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -151,41 +155,34 @@ const Products = () => {
       </header>
 
       <div className="flex">
-        {/* Fixed Left Sidebar for Filters */}
-        <div className={`fixed left-0 top-[73px] h-[calc(100vh-73px)] w-80 bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 overflow-y-auto ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Filters</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+        {/* Minimal Left Sidebar for Filters */}
+        <div className="fixed left-0 top-[73px] h-[calc(100vh-73px)] w-64 bg-white border-r border-gray-200 z-40 overflow-y-auto">
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="h-4 w-4" />
+              <h2 className="font-semibold text-gray-900">Filters</h2>
             </div>
 
             {/* Search */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Search</label>
+            <div className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search products..."
-                  className="pl-10 bg-gray-50 border-gray-200"
+                  className="pl-10 h-9 text-sm"
                 />
               </div>
             </div>
 
-            {/* Categories */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Categories</h3>
-              <div className="space-y-3">
+            {/* Categories Dropdown */}
+            <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
+                Categories
+                {categoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pb-2">
                 {categories.map(category => (
-                  <div key={category.value} className="flex items-center space-x-2">
+                  <div key={category.value} className="flex items-center space-x-2 pl-2">
                     <Checkbox 
                       id={category.value}
                       checked={selectedCategory === category.value}
@@ -193,67 +190,83 @@ const Products = () => {
                     />
                     <label 
                       htmlFor={category.value}
-                      className="text-sm text-gray-600 cursor-pointer flex-1"
+                      className="text-xs text-gray-600 cursor-pointer flex-1"
                     >
                       {category.label} ({category.count})
                     </label>
                   </div>
                 ))}
-              </div>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-            {/* Price Range */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Price Range</h3>
-              <Select value={priceRange} onValueChange={setPriceRange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select price range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="under-50">Under $50</SelectItem>
-                  <SelectItem value="50-100">$50 - $100</SelectItem>
-                  <SelectItem value="100-150">$100 - $150</SelectItem>
-                  <SelectItem value="over-150">Over $150</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Price Range Dropdown */}
+            <Collapsible open={priceOpen} onOpenChange={setPriceOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
+                Price Range
+                {priceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pb-2">
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select price range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="under-50">Under $50</SelectItem>
+                    <SelectItem value="50-100">$50 - $100</SelectItem>
+                    <SelectItem value="100-150">$100 - $150</SelectItem>
+                    <SelectItem value="over-150">Over $150</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CollapsibleContent>
+            </Collapsible>
 
-            {/* Colors */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Colors</h3>
-              <div className="grid grid-cols-4 gap-2">
-                {["Black", "White", "Gray", "Blue", "Red", "Green", "Navy", "Brown"].map(color => (
-                  <div 
-                    key={color}
-                    className="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer hover:border-gray-400 transition-colors"
-                    style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
-                  />
-                ))}
-              </div>
-            </div>
+            {/* Colors Dropdown */}
+            <Collapsible open={colorsOpen} onOpenChange={setColorsOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
+                Colors
+                {colorsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pb-2">
+                <div className="grid grid-cols-4 gap-2 pl-2">
+                  {["Black", "White", "Gray", "Blue", "Red", "Green", "Navy", "Brown"].map(color => (
+                    <div 
+                      key={color}
+                      className="w-6 h-6 rounded-full border-2 border-gray-200 cursor-pointer hover:border-gray-400 transition-colors"
+                      style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
+                    />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-            {/* Size */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Size</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {["XS", "S", "M", "L", "XL", "XXL"].map(size => (
-                  <Button
-                    key={size}
-                    variant="outline"
-                    size="sm"
-                    className="hover:bg-gray-900 hover:text-white transition-colors"
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            {/* Size Dropdown */}
+            <Collapsible open={sizeOpen} onOpenChange={setSizeOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
+                Size
+                {sizeOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pb-2">
+                <div className="grid grid-cols-3 gap-1 pl-2">
+                  {["XS", "S", "M", "L", "XL", "XXL"].map(size => (
+                    <Button
+                      key={size}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs hover:bg-gray-900 hover:text-white transition-colors"
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Clear Filters */}
             <Button 
               variant="outline" 
-              className="w-full"
+              size="sm"
+              className="w-full mt-4 h-8 text-xs"
               onClick={() => {
                 setSelectedCategory("all");
                 setPriceRange("all");
@@ -265,24 +278,12 @@ const Products = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 lg:ml-80">
+        <div className="flex-1 ml-64">
           <div className="container mx-auto px-4 py-8">
             {/* Page Header */}
             <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-4">All Products</h1>
-                  <p className="text-xl text-gray-600">Discover our complete collection of premium streetwear</p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="lg:hidden"
-                  onClick={() => setSidebarOpen(true)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">All Products</h1>
+              <p className="text-xl text-gray-600">Discover our complete collection of premium streetwear</p>
             </div>
 
             {/* Controls */}
@@ -429,14 +430,6 @@ const Products = () => {
           </div>
         </div>
       </div>
-
-      {/* Sidebar Overlay for Mobile */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };

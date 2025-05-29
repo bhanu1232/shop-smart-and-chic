@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Heart } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, User, ShoppingCart, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
@@ -12,35 +13,37 @@ const Cart = () => {
   const [cartItems, setCartItems] = useState([
     {
       id: 1,
-      name: "Premium Streetwear Hoodie",
-      price: 89.99,
-      originalPrice: 129.99,
-      quantity: 2,
+      name: "Lakers LeBron James Jersey",
+      price: 120.00,
+      originalPrice: 150.00,
+      quantity: 1,
       size: "L",
-      color: "Black",
+      color: "Purple",
       image: "/placeholder.svg"
     },
     {
       id: 2,
-      name: "Urban Style Cargo Pants",
-      price: 79.99,
-      originalPrice: 99.99,
-      quantity: 1,
-      size: "M",
-      color: "Khaki",
+      name: "Yankees Baseball Cap",
+      price: 30.00,
+      originalPrice: 45.00,
+      quantity: 2,
+      size: "One Size",
+      color: "Navy",
       image: "/placeholder.svg"
     },
     {
       id: 3,
-      name: "Classic Denim Jacket",
-      price: 119.99,
-      originalPrice: 159.99,
+      name: "Chiefs Travis Kelce T-Shirt",
+      price: 35.00,
+      originalPrice: 50.00,
       quantity: 1,
-      size: "L",
-      color: "Blue",
+      size: "M",
+      color: "Red",
       image: "/placeholder.svg"
     }
   ]);
+
+  const [promoCode, setPromoCode] = useState("");
 
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity === 0) {
@@ -57,13 +60,13 @@ const Cart = () => {
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = subtotal > 100 ? 0 : 15;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const shipping = 9.99;
+  const estimatedTax = subtotal * 0.08;
+  const total = subtotal + shipping + estimatedTax;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header - Same as homepage */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -74,30 +77,60 @@ const Cart = () => {
               Skena.co
             </h1>
             <nav className="hidden md:flex space-x-6">
-              <a href="/" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</a>
-              <a href="/products" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</a>
-              <a href="/about" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</a>
-              <a href="/cart" className="text-gray-900 font-bold">Cart</a>
+              <button onClick={() => navigate('/')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</button>
+              <button onClick={() => navigate('/products')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</button>
+              <button onClick={() => navigate('/about')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</button>
             </nav>
-            <Button className="bg-gray-900 hover:bg-gray-800">Sign In</Button>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/cart')}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                  {cartItems.length}
+                </Badge>
+              </Button>
+              <Button 
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/profile')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/products')}
-            className="hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
-            <p className="text-gray-600">{cartItems.length} items in your cart</p>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Progress Steps */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                1
+              </div>
+              <span className="ml-2 text-sm font-medium text-blue-600">Information</span>
+            </div>
+            <div className="w-8 h-px bg-gray-300"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
+                2
+              </div>
+              <span className="ml-2 text-sm text-gray-500">Shipping</span>
+            </div>
+            <div className="w-8 h-px bg-gray-300"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
+                3
+              </div>
+              <span className="ml-2 text-sm text-gray-500">Payment</span>
+            </div>
           </div>
         </div>
 
@@ -109,7 +142,7 @@ const Cart = () => {
             <p className="text-gray-600 mb-8">Looks like you haven't added anything to your cart yet</p>
             <Button 
               onClick={() => navigate('/products')}
-              className="bg-gray-900 hover:bg-gray-800 hover:scale-105 transition-all duration-300"
+              className="bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-300"
             >
               Start Shopping
             </Button>
@@ -117,140 +150,143 @@ const Cart = () => {
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item, index) => (
-                <Card 
-                  key={item.id}
-                  className="hover:shadow-lg transition-all duration-300 border-0 bg-white"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex gap-4">
-                      {/* Product Image */}
-                      <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300"></div>
-                      </div>
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Shopping Cart</h2>
+              <div className="space-y-4">
+                {cartItems.map((item, index) => (
+                  <Card 
+                    key={item.id}
+                    className="hover:shadow-lg transition-all duration-300 border bg-white overflow-hidden"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        {/* Product Image with number badge */}
+                        <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300"></div>
+                          <Badge className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                            {item.quantity}
+                          </Badge>
+                        </div>
 
-                      {/* Product Details */}
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-lg text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
+                        {/* Product Details */}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg text-gray-900 mb-1">
                             {item.name}
                           </h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeItem(item.id)}
-                            className="text-gray-400 hover:text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="flex gap-4 mb-3">
-                          <Badge variant="outline">Size: {item.size}</Badge>
-                          <Badge variant="outline">Color: {item.color}</Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-gray-900">
-                              ${item.price}
-                            </span>
-                            <span className="text-sm text-gray-500 line-through">
-                              ${item.originalPrice}
-                            </span>
-                          </div>
-
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-3">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="h-8 w-8 hover:bg-gray-100"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-lg font-medium w-8 text-center">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="h-8 w-8 hover:bg-gray-100"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                          <p className="text-gray-600 text-sm mb-2">
+                            Size: {item.size} • Color: {item.color}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="text-lg font-bold text-gray-900">
+                              ${item.price.toFixed(2)}
+                            </div>
+                            
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                className="h-8 w-8 hover:bg-gray-100"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-lg font-medium w-8 text-center">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="h-8 w-8 hover:bg-gray-100"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeItem(item.id)}
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 ml-2"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Continue Shopping */}
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/products')}
+                className="mt-6 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Return to cart
+              </Button>
             </div>
 
             {/* Order Summary */}
             <div>
-              <Card className="sticky top-24 border-0 shadow-lg">
+              <Card className="sticky top-24 border shadow-lg bg-white">
                 <CardHeader>
                   <CardTitle className="text-xl">Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between">
+                  {/* Promo Code */}
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-600">Gift card or discount code</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter code"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button variant="outline" size="sm">
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator />
+                  
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">${subtotal.toFixed(2)}</span>
                   </div>
                   
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">
-                      {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
-                    </span>
+                    <span className="font-medium">${shipping.toFixed(2)}</span>
                   </div>
                   
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tax</span>
-                    <span className="font-medium">${tax.toFixed(2)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Estimated taxes (?)</span>
+                    <span className="font-medium">${estimatedTax.toFixed(2)}</span>
                   </div>
                   
                   <Separator />
                   
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>${total.toFixed(2)} USD</span>
                   </div>
 
-                  {shipping > 0 && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        Add ${(100 - subtotal).toFixed(2)} more for free shipping!
-                      </p>
-                    </div>
-                  )}
-
                   <Button 
-                    className="w-full bg-gray-900 hover:bg-gray-800 hover:scale-105 transition-all duration-300"
+                    className="w-full bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-300 py-3"
                     onClick={() => navigate('/checkout')}
                   >
-                    Proceed to Checkout
+                    Complete Order
                   </Button>
 
-                  <Button 
-                    variant="outline" 
-                    className="w-full hover:bg-gray-50"
-                    onClick={() => navigate('/products')}
-                  >
-                    Continue Shopping
-                  </Button>
-
-                  <div className="text-center">
-                    <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Save for Later
-                    </Button>
+                  <div className="text-center text-xs text-gray-500">
+                    All transactions are secure and encrypted.
                   </div>
                 </CardContent>
               </Card>
