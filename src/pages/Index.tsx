@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Search, Menu, Star, Heart, ArrowRight } from "lucide-react";
+import { ShoppingCart, Search, Menu, Star, Heart, ArrowRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -76,14 +76,16 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 
+                className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent cursor-pointer"
+                onClick={() => navigate('/')}
+              >
                 Skena.co
               </h1>
               <nav className="hidden md:flex space-x-6">
-                <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Categories</a>
-                <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</a>
+                <button onClick={() => navigate('/')} className="text-gray-900 font-bold transition-colors">Home</button>
+                <button onClick={() => navigate('/products')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</button>
+                <button onClick={() => navigate('/about')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</button>
               </nav>
             </div>
             
@@ -108,7 +110,18 @@ const Index = () => {
                   </Badge>
                 )}
               </Button>
-              <Button className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 transition-colors">
+              <Button 
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/profile')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button 
+                className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 transition-colors"
+                onClick={() => navigate('/profile')}
+              >
                 Sign In
               </Button>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -149,6 +162,7 @@ const Index = () => {
                 variant="outline" 
                 size="lg" 
                 className="border-white text-white hover:bg-white hover:text-gray-900 hover:scale-105 transition-all duration-300 text-lg px-8 py-6"
+                onClick={() => navigate('/products')}
               >
                 View Collection
               </Button>
@@ -173,6 +187,7 @@ const Index = () => {
                 key={category.name} 
                 className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-0 bg-white"
                 style={{ animationDelay: `${index * 0.1}s` }}
+                onClick={() => navigate('/products')}
               >
                 <CardContent className="p-6 text-center">
                   <div className="w-20 h-20 bg-gray-100 rounded-full mx-auto mb-4 group-hover:bg-gray-200 transition-colors duration-300 flex items-center justify-center">
@@ -308,7 +323,12 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Skena.co</h3>
+              <h3 
+                className="text-xl font-bold text-gray-900 mb-4 cursor-pointer"
+                onClick={() => navigate('/')}
+              >
+                Skena.co
+              </h3>
               <p className="text-gray-600 mb-4">
                 Premium streetwear for the modern individual. Quality meets style.
               </p>
@@ -316,8 +336,8 @@ const Index = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-600">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Contact</a></li>
+                <li><button onClick={() => navigate('/about')} className="hover:text-gray-900 transition-colors">About Us</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Products</button></li>
                 <li><a href="#" className="hover:text-gray-900 transition-colors">Size Guide</a></li>
                 <li><a href="#" className="hover:text-gray-900 transition-colors">Returns</a></li>
               </ul>
@@ -325,10 +345,10 @@ const Index = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-4">Categories</h4>
               <ul className="space-y-2 text-gray-600">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Hoodies</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">T-Shirts</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Pants</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Accessories</a></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Hoodies</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">T-Shirts</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Pants</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Accessories</button></li>
               </ul>
             </div>
             <div>

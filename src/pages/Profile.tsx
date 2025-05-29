@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { User, MapPin, CreditCard, Package, Heart, Settings, LogOut, Edit } from "lucide-react";
+import { User, MapPin, CreditCard, Package, Heart, Settings, LogOut, Edit, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
@@ -95,19 +95,36 @@ const Profile = () => {
               Skena.co
             </h1>
             <nav className="hidden md:flex space-x-6">
-              <a href="/" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</a>
-              <a href="/products" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</a>
-              <a href="/about" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</a>
-              <a href="/cart" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Cart</a>
+              <button onClick={() => navigate('/')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</button>
+              <button onClick={() => navigate('/products')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</button>
+              <button onClick={() => navigate('/about')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</button>
             </nav>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="hover:bg-gray-100"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/cart')}
+              >
+                <ShoppingCart className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100 transition-colors bg-gray-100"
+                onClick={() => navigate('/profile')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="hover:bg-gray-100"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>

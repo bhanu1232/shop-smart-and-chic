@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Users, Award, Globe, Heart } from "lucide-react";
+import { ArrowRight, Users, Award, Globe, Heart, ShoppingCart, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const About = () => {
@@ -49,12 +49,29 @@ const About = () => {
               Skena.co
             </h1>
             <nav className="hidden md:flex space-x-6">
-              <a href="/" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</a>
-              <a href="/products" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</a>
-              <a href="/about" className="text-gray-900 font-bold">About</a>
-              <a href="/cart" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Cart</a>
+              <button onClick={() => navigate('/')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</button>
+              <button onClick={() => navigate('/products')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</button>
+              <button onClick={() => navigate('/about')} className="text-gray-900 font-bold">About</button>
             </nav>
-            <Button className="bg-gray-900 hover:bg-gray-800">Sign In</Button>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/cart')}
+              >
+                <ShoppingCart className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/profile')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button className="bg-gray-900 hover:bg-gray-800">Sign In</Button>
+            </div>
           </div>
         </div>
       </header>
