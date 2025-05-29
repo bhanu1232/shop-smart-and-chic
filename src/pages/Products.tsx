@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Search, Filter, Star, Heart, Grid, List } from "lucide-react";
+import { ShoppingCart, Search, Star, Heart, Grid, List, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Products = () => {
@@ -13,6 +13,7 @@ const Products = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
+  const [priceRange, setPriceRange] = useState("all");
 
   const products = [
     {
@@ -25,7 +26,8 @@ const Products = () => {
       reviews: 124,
       isNew: true,
       category: "hoodies",
-      description: "Ultra-soft cotton blend hoodie with modern fit"
+      description: "Ultra-soft cotton blend hoodie with modern fit",
+      colors: ["Black", "White", "Gray"]
     },
     {
       id: 2,
@@ -37,7 +39,8 @@ const Products = () => {
       reviews: 89,
       isNew: false,
       category: "pants",
-      description: "Durable cargo pants with multiple pockets"
+      description: "Durable cargo pants with multiple pockets",
+      colors: ["Khaki", "Black", "Olive"]
     },
     {
       id: 3,
@@ -49,7 +52,8 @@ const Products = () => {
       reviews: 156,
       isNew: true,
       category: "jackets",
-      description: "Timeless denim jacket with vintage wash"
+      description: "Timeless denim jacket with vintage wash",
+      colors: ["Blue", "Black", "Light Blue"]
     },
     {
       id: 4,
@@ -61,7 +65,8 @@ const Products = () => {
       reviews: 203,
       isNew: false,
       category: "tshirts",
-      description: "Comfortable oversized fit cotton t-shirt"
+      description: "Comfortable oversized fit cotton t-shirt",
+      colors: ["White", "Black", "Gray", "Navy"]
     },
     {
       id: 5,
@@ -73,7 +78,8 @@ const Products = () => {
       reviews: 78,
       isNew: false,
       category: "pants",
-      description: "Performance sweatpants for active lifestyle"
+      description: "Performance sweatpants for active lifestyle",
+      colors: ["Black", "Gray", "Navy"]
     },
     {
       id: 6,
@@ -85,16 +91,17 @@ const Products = () => {
       reviews: 92,
       isNew: true,
       category: "jackets",
-      description: "Modern bomber jacket with premium materials"
+      description: "Modern bomber jacket with premium materials",
+      colors: ["Black", "Olive", "Navy"]
     }
   ];
 
   const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "hoodies", label: "Hoodies" },
-    { value: "tshirts", label: "T-Shirts" },
-    { value: "pants", label: "Pants" },
-    { value: "jackets", label: "Jackets" }
+    { value: "all", label: "All Categories", count: products.length },
+    { value: "hoodies", label: "Hoodies", count: products.filter(p => p.category === "hoodies").length },
+    { value: "tshirts", label: "T-Shirts", count: products.filter(p => p.category === "tshirts").length },
+    { value: "pants", label: "Pants", count: products.filter(p => p.category === "pants").length },
+    { value: "jackets", label: "Jackets", count: products.filter(p => p.category === "jackets").length }
   ];
 
   const filteredProducts = products.filter(product => 
@@ -116,8 +123,8 @@ const Products = () => {
             <nav className="hidden md:flex space-x-6">
               <a href="/" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</a>
               <a href="/products" className="text-gray-900 font-bold">Products</a>
-              <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Categories</a>
-              <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</a>
+              <a href="/about" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</a>
+              <a href="/cart" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Cart</a>
             </nav>
             <Button className="bg-gray-900 hover:bg-gray-800">Sign In</Button>
           </div>
@@ -131,8 +138,29 @@ const Products = () => {
           <p className="text-xl text-gray-600">Discover our complete collection of premium streetwear</p>
         </div>
 
+        {/* Categories Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Categories</h2>
+          <div className="flex flex-wrap gap-3">
+            {categories.map(category => (
+              <Button
+                key={category.value}
+                variant={selectedCategory === category.value ? "default" : "outline"}
+                className={`hover:scale-105 transition-all duration-300 ${
+                  selectedCategory === category.value 
+                    ? "bg-gray-900 text-white" 
+                    : "hover:bg-gray-900 hover:text-white"
+                }`}
+                onClick={() => setSelectedCategory(category.value)}
+              >
+                {category.label} ({category.count})
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {/* Filters and Controls */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8 p-6 bg-white rounded-xl shadow-sm border">
+        <div className="flex flex-col lg:flex-row gap-4 mb-8 p-6 bg-white rounded-xl shadow-sm border">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -143,21 +171,21 @@ const Products = () => {
             </div>
           </div>
           
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Category" />
+          <Select value={priceRange} onValueChange={setPriceRange}>
+            <SelectTrigger className="w-full lg:w-48">
+              <SelectValue placeholder="Price Range" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">All Prices</SelectItem>
+              <SelectItem value="under-50">Under $50</SelectItem>
+              <SelectItem value="50-100">$50 - $100</SelectItem>
+              <SelectItem value="100-150">$100 - $150</SelectItem>
+              <SelectItem value="over-150">Over $150</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full md:w-48">
+            <SelectTrigger className="w-full lg:w-48">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -251,6 +279,14 @@ const Products = () => {
                 {viewMode === "list" && (
                   <p className="text-gray-600 mb-4">{product.description}</p>
                 )}
+
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {product.colors.map(color => (
+                    <Badge key={color} variant="outline" className="text-xs">
+                      {color}
+                    </Badge>
+                  ))}
+                </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -282,7 +318,7 @@ const Products = () => {
           <Button 
             variant="outline" 
             size="lg"
-            className="hover:bg-gray-900 hover:text-white transition-all duration-300"
+            className="hover:bg-gray-900 hover:text-white transition-all duration-300 hover:scale-105"
           >
             Load More Products
           </Button>
