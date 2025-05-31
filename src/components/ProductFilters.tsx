@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -118,4 +119,4 @@ const ProductFilters = memo(({
 
 ProductFilters.displayName = 'ProductFilters';
 
-export default ProductFilters; 
+export default ProductFilters;

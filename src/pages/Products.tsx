@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/ProductCard";
 import { debounce } from "lodash";
 import { motion } from "framer-motion";
+import ProductFilters from "@/components/ProductFilters";
 
 // Extend the API Product type to include meta information
 interface Product extends Omit<ApiProduct, 'meta'> {
@@ -353,49 +354,51 @@ const Products = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
         <Navbar />
-        <div className="flex">
-          {/* Fixed Sidebar */}
-          <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-100 p-4 overflow-y-auto z-10">
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search products..."
-                  className="pl-10 h-9 text-sm"
-                  disabled
-                />
-              </div>
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-2" />
-                  <div className="h-8 bg-gray-200 rounded" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+            {/* Sidebar Skeleton */}
+            <div className="hidden lg:block">
+              <div className="sticky top-24 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 shadow-sm">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search products..."
+                      className="pl-10 h-9 text-sm"
+                      disabled
+                    />
+                  </div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded mb-2" />
+                      <div className="h-8 bg-gray-200 rounded" />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
 
-          {/* Main Content */}
-          <div className="flex-1 ml-64 p-6">
-            <div className="mb-6">
+            {/* Main Content */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8">
+                  <Button variant="outline" size="icon" className="h-8 w-8 border-gray-200">
                     <Grid className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8">
+                  <Button variant="outline" size="icon" className="h-8 w-8 border-gray-200">
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-gray-600">Loading products...</p>
+                <p className="text-sm text-gray-500">Loading products...</p>
               </div>
-            </div>
 
-            <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
-              {[...Array(8)].map((_, index) => (
-                <ProductCardSkeleton key={index} viewMode={viewMode} />
-              ))}
+              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+                {[...Array(8)].map((_, index) => (
+                  <ProductCardSkeleton key={index} viewMode={viewMode} />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -404,67 +407,80 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
       
-      <div className="flex">
-        {/* Responsive Sidebar - Box Design */}
-        <div className="hidden lg:block">
-          <div className="fixed left-4 top-24 h-[calc(100vh-8rem)] w-72 bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/80 shadow-lg overflow-y-auto z-10">
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Filter className="h-5 w-5 text-gray-600" />
-                <h2 className="font-semibold text-gray-900">Filters</h2>
-              </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <ProductFilters
+              categories={categories}
+              selectedCategory={selectedCategory}
+              priceRange={priceRange}
+              searchQuery={searchQuery}
+              categoriesOpen={categoriesOpen}
+              priceOpen={priceOpen}
+              onCategoryChange={setSelectedCategory}
+              onPriceRangeChange={setPriceRange}
+              onSearchChange={handleSearch}
+              onCategoriesOpenChange={setCategoriesOpen}
+              onPriceOpenChange={setPriceOpen}
+              onClearFilters={handleClearFilters}
+            />
+          </div>
 
-              {/* Search */}
-              <div className="mb-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search products..."
-                    className="pl-10 h-10 text-sm bg-gray-50/80 border-gray-200 focus:border-gray-300 focus:ring-0"
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
+          {/* Mobile Filter Sheet */}
+          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="lg:hidden fixed top-20 left-4 z-20 bg-white/90 backdrop-blur-sm border-gray-200">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 p-0 bg-white">
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <Filter className="h-4 w-4 text-gray-600" />
+                  <h2 className="font-medium text-gray-900">Filters</h2>
                 </div>
-              </div>
 
-              {/* Categories */}
-              <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                  Categories
-                  {categoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 py-4">
+                {/* Search */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search products..."
+                      className="pl-10 h-10 text-sm bg-gray-50 border-gray-200"
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="font-medium text-gray-900 text-sm">Categories</h3>
                   {categories.map(category => (
                     <div key={category} className="flex items-center space-x-3">
                       <Checkbox
-                        id={category}
+                        id={`mobile-${category}`}
                         checked={selectedCategory === category}
                         onCheckedChange={() => setSelectedCategory(category)}
                         className="border-gray-300"
                       />
-                      <label
-                        htmlFor={category}
-                        className="text-sm text-gray-600 cursor-pointer flex-1 hover:text-gray-900 transition-colors"
-                      >
+                      <label htmlFor={`mobile-${category}`} className="text-sm text-gray-600 cursor-pointer">
                         {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
                       </label>
                     </div>
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
+                </div>
 
-              {/* Price Range */}
-              <Collapsible open={priceOpen} onOpenChange={setPriceOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                  Price Range
-                  {priceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="py-4">
+                {/* Price Range */}
+                <div className="mb-6">
+                  <h3 className="font-medium text-gray-900 text-sm mb-3">Price Range</h3>
                   <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="h-10 text-sm bg-gray-50/80 border-gray-200">
+                    <SelectTrigger className="h-10 text-sm bg-gray-50 border-gray-200">
                       <SelectValue placeholder="Select price range" />
                     </SelectTrigger>
                     <SelectContent>
@@ -475,242 +491,130 @@ const Products = () => {
                       <SelectItem value="over-200">Over $200</SelectItem>
                     </SelectContent>
                   </Select>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Colors */}
-              <Collapsible open={colorsOpen} onOpenChange={setColorsOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                  Colors
-                  {colorsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="py-4">
-                  <div className="grid grid-cols-6 gap-2">
-                    {["Black", "White", "Gray", "Blue", "Red", "Green", "Navy", "Brown"].map(color => (
-                      <div
-                        key={color}
-                        className="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer hover:scale-110 transition-transform"
-                        style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Size */}
-              <Collapsible open={sizeOpen} onOpenChange={setSizeOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                  Size
-                  {sizeOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="py-4">
-                  <div className="grid grid-cols-3 gap-2">
-                    {["XS", "S", "M", "L", "XL", "XXL"].map(size => (
-                      <Button
-                        key={size}
-                        variant="outline"
-                        size="sm"
-                        className="h-9 text-xs hover:bg-gray-100"
-                      >
-                        {size}
-                      </Button>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Clear Filters */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-6 h-10 text-sm border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                onClick={handleClearFilters}
-              >
-                Clear All Filters
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Filter Sheet */}
-        <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="lg:hidden fixed top-20 left-4 z-20">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
-            <div className="p-6">
-              {/* Same filter content as desktop but in mobile sheet */}
-              <div className="flex items-center gap-2 mb-6">
-                <Filter className="h-5 w-5 text-gray-600" />
-                <h2 className="font-semibold text-gray-900">Filters</h2>
-              </div>
-
-              {/* Search */}
-              <div className="mb-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search products..."
-                    className="pl-10 h-10 text-sm"
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
                 </div>
-              </div>
 
-              {/* Categories */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-gray-900">Categories</h3>
-                {categories.map(category => (
-                  <div key={category} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`mobile-${category}`}
-                      checked={selectedCategory === category}
-                      onCheckedChange={() => setSelectedCategory(category)}
-                    />
-                    <label htmlFor={`mobile-${category}`} className="text-sm text-gray-600 cursor-pointer">
-                      {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              {/* Price Range */}
-              <div className="mt-6">
-                <h3 className="font-medium text-gray-900 mb-3">Price Range</h3>
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Select price range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under-50">Under $50</SelectItem>
-                    <SelectItem value="50-100">$50 - $100</SelectItem>
-                    <SelectItem value="100-200">$100 - $200</SelectItem>
-                    <SelectItem value="over-200">Over $200</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Clear Filters */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-6"
-                onClick={handleClearFilters}
-              >
-                Clear All Filters
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Main Content */}
-        <div className="flex-1 lg:ml-80 p-4 lg:p-6">
-          {/* View Toggle and Sort */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+                {/* Clear Filters */}
                 <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setViewMode("grid")}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-gray-200 hover:bg-gray-50"
+                  onClick={handleClearFilters}
                 >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
+                  Clear All Filters
                 </Button>
               </div>
-              <div className="flex items-center gap-4">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-9 w-48 text-sm">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Featured</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-600">
-                  {sortedProducts.length} products found
-                </p>
-              </div>
-            </div>
-          </div>
+            </SheetContent>
+          </Sheet>
 
-          {/* Products Grid */}
-          {sortedProducts.length === 0 && !loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No products found matching your criteria.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
-                {sortedProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.4,
-                      ease: [0.25, 0.25, 0, 1],
-                      delay: (index % ITEMS_PER_PAGE) * 0.05,
-                    }}
+          {/* Main Content */}
+          <div className="space-y-6">
+            {/* Header Controls */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "outline"}
+                    size="icon"
+                    className="h-9 w-9 border-gray-200"
+                    onClick={() => setViewMode("grid")}
                   >
-                    <ProductCard
-                      product={product}
-                      viewMode={viewMode}
-                      index={index}
-                      wishlistStatus={wishlistStatus[product.id.toString()] || false}
-                      loadingWishlist={loadingWishlist[product.id.toString()] || false}
-                      onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                      onNavigate={() => handleNavigate(product.id.toString())}
-                    />
-                  </motion.div>
-                ))}
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "outline"}
+                    size="icon"
+                    className="h-9 w-9 border-gray-200"
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-9 w-48 text-sm border-gray-200 bg-white">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="featured">Featured</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="rating">Rating</SelectItem>
+                      <SelectItem value="newest">Newest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-sm text-gray-500 font-medium">
+                    {sortedProducts.length} products found
+                  </div>
+                </div>
               </div>
+            </div>
 
-              {/* Infinite Scroll Loading Indicator */}
-              {hasMore && (
-                <div ref={loadingRef} className="flex justify-center items-center py-8">
-                  {isLoadingMore && (
-                    <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
-                      {[...Array(4)].map((_, index) => (
-                        <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
-                      ))}
-                    </div>
-                  )}
+            {/* Products Grid */}
+            {sortedProducts.length === 0 && !loading ? (
+              <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
+                <div className="max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+                  <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
+                  <Button
+                    variant="outline"
+                    onClick={handleClearFilters}
+                    className="border-gray-200 hover:bg-gray-50"
+                  >
+                    Clear Filters
+                  </Button>
                 </div>
-              )}
+              </div>
+            ) : (
+              <>
+                <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+                  {sortedProducts.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.4,
+                        ease: [0.25, 0.25, 0, 1],
+                        delay: (index % ITEMS_PER_PAGE) * 0.05,
+                      }}
+                    >
+                      <ProductCard
+                        product={product}
+                        viewMode={viewMode}
+                        index={index}
+                        wishlistStatus={wishlistStatus[product.id.toString()] || false}
+                        loadingWishlist={loadingWishlist[product.id.toString()] || false}
+                        onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
+                        onNavigate={() => handleNavigate(product.id.toString())}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
 
-              {!hasMore && sortedProducts.length > 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">You've reached the end of the products.</p>
-                </div>
-              )}
-            </>
-          )}
+                {/* Infinite Scroll Loading Indicator */}
+                {hasMore && (
+                  <div ref={loadingRef} className="flex justify-center items-center py-8">
+                    {isLoadingMore && (
+                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
+                        {[...Array(4)].map((_, index) => (
+                          <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!hasMore && sortedProducts.length > 0 && (
+                  <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
+                    <p className="text-gray-500">You've reached the end of the products.</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -721,7 +625,7 @@ const Products = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white p-3 rounded-full shadow-lg transition-colors z-50"
+          className="fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white p-3 rounded-full shadow-lg transition-colors z-50 backdrop-blur-sm"
           aria-label="Back to top"
         >
           <ArrowUp className="h-5 w-5" />
