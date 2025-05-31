@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -146,13 +147,13 @@ const ProductCard = memo(({
                     </p>
                 )}
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-gray-900 whitespace-nowrap">
                             ${product.price.toFixed(2)}
                         </span>
                         {product.discountPercentage > 0 && (
-                            <span className="text-sm text-gray-500 line-through">
+                            <span className="text-sm text-gray-500 line-through whitespace-nowrap">
                                 ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
                             </span>
                         )}
@@ -160,14 +161,14 @@ const ProductCard = memo(({
                     <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 text-sm border-gray-200 hover:border-gray-300 hover:bg-gray-50 group-hover:bg-gray-900 group-hover:text-white group-hover:border-gray-900 transition-all duration-300"
+                        className="h-9 text-sm border-gray-200 hover:border-gray-300 hover:bg-gray-50 group-hover:bg-gray-900 group-hover:text-white group-hover:border-gray-900 transition-all duration-300 flex-shrink-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             // Add to cart functionality will be implemented here
                         }}
                     >
                         <ShoppingCart className="mr-2 h-4 w-4" />
-                        Add to Cart
+                        Add
                     </Button>
                 </div>
             </CardContent>
@@ -177,4 +178,4 @@ const ProductCard = memo(({
 
 ProductCard.displayName = 'ProductCard';
 
-export default ProductCard; 
+export default ProductCard;

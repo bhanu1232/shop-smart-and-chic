@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,9 +97,11 @@ const Products = () => {
   const [skip, setSkip] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const isInitialLoad = useRef(true);
 
   // Memoize filtered and sorted products
   const filteredProducts = useMemo(() => {
+    console.log("Filtering products:", products.length, "Search:", searchQuery, "Category:", selectedCategory, "Price:", priceRange);
     return products.filter((product) => {
       const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,16 +132,30 @@ const Products = () => {
     });
   }, [filteredProducts, sortBy]);
 
-  // Load more products function
+  // Cleanup observer on unmount or when dependencies change
+  const cleanupObserver = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+  }, []);
+
+  // Load more products function with better error handling
   const loadMoreProducts = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore || searchQuery.trim()) {
+      console.log("Load more blocked:", { isLoadingMore, hasMore, searchQuery });
+      return;
+    }
 
     try {
+      console.log("Loading more products, skip:", skip);
       setIsLoadingMore(true);
       const newProducts = await fetchProducts(ITEMS_PER_PAGE, skip);
+      console.log("Loaded products:", newProducts.length);
 
       if (newProducts.length === 0) {
         setHasMore(false);
+        console.log("No more products available");
         return;
       }
 
@@ -150,7 +167,11 @@ const Products = () => {
         }
       }));
 
-      setProducts(prev => [...prev, ...extendedProducts]);
+      setProducts(prev => {
+        const updated = [...prev, ...extendedProducts];
+        console.log("Total products after load:", updated.length);
+        return updated;
+      });
       setSkip(prev => prev + ITEMS_PER_PAGE);
       setHasMore(newProducts.length === ITEMS_PER_PAGE);
 
@@ -173,42 +194,53 @@ const Products = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [skip, isLoadingMore, hasMore, isAuthenticated, user]);
+  }, [skip, isLoadingMore, hasMore, isAuthenticated, user, searchQuery]);
 
-  // Setup Intersection Observer for infinite scroll
+  // Setup Intersection Observer with cleanup
   useEffect(() => {
+    cleanupObserver();
+
+    if (!hasMore || searchQuery.trim()) {
+      console.log("Observer not needed:", { hasMore, searchQuery });
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && !isLoadingMore && hasMore) {
+        console.log("Observer triggered:", entry.isIntersecting, "Loading:", isLoadingMore);
+        if (entry.isIntersecting && !isLoadingMore && hasMore && !searchQuery.trim()) {
           loadMoreProducts();
         }
       },
       {
         root: null,
-        rootMargin: '100px',
+        rootMargin: '200px',
         threshold: 0.1,
       }
     );
 
     if (loadingRef.current) {
       observer.observe(loadingRef.current);
+      console.log("Observer attached to loading ref");
     }
 
     observerRef.current = observer;
 
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [loadMoreProducts, isLoadingMore, hasMore]);
+    return cleanupObserver;
+  }, [loadMoreProducts, isLoadingMore, hasMore, searchQuery, cleanupObserver]);
 
   // Initial products load
   const loadProducts = useCallback(async () => {
     try {
+      console.log("Loading initial products");
       setLoading(true);
+      setProducts([]);
+      setSkip(0);
+      setHasMore(true);
+      
       const data = await fetchProducts(ITEMS_PER_PAGE, 0);
+      console.log("Initial products loaded:", data.length);
 
       const extendedProducts: Product[] = data.map(product => ({
         ...product,
@@ -245,16 +277,20 @@ const Products = () => {
 
   // Initial load
   useEffect(() => {
-    loadProducts();
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      loadProducts();
+    }
   }, [loadProducts]);
 
   // Reset pagination when filters change
   useEffect(() => {
-    setProducts([]);
-    setSkip(0);
-    setHasMore(true);
-    loadProducts();
-  }, [selectedCategory, priceRange, searchQuery]);
+    if (!isInitialLoad.current) {
+      console.log("Filters changed, reloading products");
+      cleanupObserver();
+      loadProducts();
+    }
+  }, [selectedCategory, priceRange, loadProducts, cleanupObserver]);
 
   const handleNavigate = useCallback((productId: string) => {
     navigate(`/product/${productId}`);
@@ -295,18 +331,21 @@ const Products = () => {
   }, [user, wishlistStatus, products]);
 
   const handleSearch = useCallback(async (query: string) => {
+    console.log("Search query:", query);
     setSearchQuery(query);
+    cleanupObserver();
+    
     if (!query.trim()) {
-      setProducts([]);
-      setSkip(0);
-      setHasMore(true);
       loadProducts();
       return;
     }
 
     try {
       setIsSearching(true);
+      setLoading(true);
       const results = await searchProducts(query);
+      console.log("Search results:", results.length);
+      
       const extendedResults: Product[] = results.map(product => ({
         ...product,
         meta: {
@@ -316,12 +355,15 @@ const Products = () => {
       }));
       setProducts(extendedResults);
       setHasMore(false); // Disable infinite scroll for search results
+      setSkip(0);
     } catch (error) {
       console.error('Error searching products:', error);
+      toast.error('Failed to search products');
     } finally {
       setIsSearching(false);
+      setLoading(false);
     }
-  }, [loadProducts]);
+  }, [loadProducts, cleanupObserver]);
 
   // Get unique categories from products
   const categories = ["all", ...new Set(products.map(product => product.category))];
@@ -357,7 +399,7 @@ const Products = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
             {/* Sidebar Skeleton */}
             <div className="hidden lg:block">
               <div className="sticky top-24 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 shadow-sm">
@@ -394,7 +436,7 @@ const Products = () => {
                 <p className="text-sm text-gray-500">Loading products...</p>
               </div>
 
-              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
                 {[...Array(8)].map((_, index) => (
                   <ProductCardSkeleton key={index} viewMode={viewMode} />
                 ))}
@@ -411,7 +453,7 @@ const Products = () => {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
           {/* Desktop Sidebar */}
           <div className="hidden lg:block">
             <ProductFilters
@@ -569,7 +611,7 @@ const Products = () => {
               </div>
             ) : (
               <>
-                <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+                <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
                   {sortedProducts.map((product, index) => (
                     <motion.div
                       key={product.id}
@@ -595,10 +637,10 @@ const Products = () => {
                 </div>
 
                 {/* Infinite Scroll Loading Indicator */}
-                {hasMore && (
+                {hasMore && !searchQuery.trim() && (
                   <div ref={loadingRef} className="flex justify-center items-center py-8">
                     {isLoadingMore && (
-                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
+                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
                         {[...Array(4)].map((_, index) => (
                           <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
                         ))}
@@ -607,9 +649,11 @@ const Products = () => {
                   </div>
                 )}
 
-                {!hasMore && sortedProducts.length > 0 && (
+                {(!hasMore || searchQuery.trim()) && sortedProducts.length > 0 && (
                   <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
-                    <p className="text-gray-500">You've reached the end of the products.</p>
+                    <p className="text-gray-500">
+                      {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
+                    </p>
                   </div>
                 )}
               </>
