@@ -21,37 +21,137 @@ import {
   Edit2,
   Camera,
   Search,
-  Menu
+  Menu,
+  XCircle,
+  Trash2
 } from "lucide-react";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import { getUserProfile, setUserProfile, getWishlistItems, removeWishlistItem, WishlistItem } from "@/firebase/firestore";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
   useScrollToTop();
   const { user, isAuthenticated, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
-  const [userDetails, setUserDetails] = useState({
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
     phone: "",
     address: ""
   });
-  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(true);
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       navigate('/');
+      return;
     }
-  }, [isAuthenticated, navigate]);
 
-  // Reset imageLoadFailed state if user or photoURL changes
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const userProfile = await getUserProfile(user.uid);
+        if (userProfile) {
+          setProfileData({
+            name: userProfile.name || user.name || '',
+            email: userProfile.email || user.email || '',
+            phone: userProfile.phone || '',
+            address: userProfile.address || ''
+          });
+        } else {
+          setProfileData({
+            name: user.name || '',
+            email: user.email || '',
+            phone: '',
+            address: '',
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        toast.error("Failed to load profile data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [isAuthenticated, user, navigate]);
+
   useEffect(() => {
-    setImageLoadFailed(false);
-  }, [user?.photoURL]);
+    if (!isAuthenticated || !user) {
+      setWishlistItems([]);
+      return;
+    }
 
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+    const fetchWishlist = async () => {
+      setLoadingWishlist(true);
+      try {
+        const items = await getWishlistItems(user.uid);
+        setWishlistItems(items);
+      } catch (error) {
+        console.error("Error fetching wishlist:", error);
+        toast.error("Failed to load wishlist.");
+      } finally {
+        setLoadingWishlist(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [isAuthenticated, user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setProfileData(prevData => ({
+      ...prevData,
+      [id]: value
+    }));
+  };
+
+  const handleEditClick = () => {
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      await setUserProfile(user.uid, {
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+      });
+      toast.success("Profile updated successfully!");
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveFromWishlist = async (itemId: string) => {
+    if (!user) return;
+    setRemovingItemId(itemId);
+    try {
+      await removeWishlistItem(user.uid, itemId);
+      setWishlistItems(prevItems => prevItems.filter(item => item.id !== itemId));
+      toast.success("Item removed from wishlist.");
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      toast.error("Failed to remove item from wishlist.");
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -59,6 +159,7 @@ const Profile = () => {
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
+      toast.error("Failed to sign out.");
     }
   };
 
@@ -79,24 +180,16 @@ const Profile = () => {
     }
   ];
 
-  const wishlist = [
-    {
-      id: 1,
-      name: "Premium Streetwear Hoodie",
-      price: 89.99,
-      image: "/placeholder.svg"
-    },
-    {
-      id: 2,
-      name: "Urban Style Cargo Pants",
-      price: 79.99,
-      image: "/placeholder.svg"
-    }
-  ];
+  if (!isAuthenticated || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar Component */}
       <Navbar />
 
       <div className="container mx-auto px-6 py-12 max-w-7xl">
@@ -108,27 +201,20 @@ const Profile = () => {
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative mb-4">
                     <div className="w-24 h-24 bg-gray-50/80 rounded-full overflow-hidden flex items-center justify-center">
-                      {user?.photoURL && !imageLoadFailed ? (
+                      {user?.photoURL ? (
                         <img
                           src={user.photoURL}
                           alt={user.name || 'User'}
                           className="w-full h-full object-cover"
-                          onError={() => setImageLoadFailed(true)}
+                          onError={(e) => e.currentTarget.src = ''}
                         />
                       ) : (
                         <User className="h-12 w-12 text-gray-400" />
                       )}
                     </div>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full border-gray-200 bg-white hover:bg-gray-50"
-                    >
-                      <Camera className="h-4 w-4" />
-                    </Button>
                   </div>
-                  <h2 className="text-lg font-medium text-gray-900">{user?.name || 'User'}</h2>
-                  <p className="text-sm text-gray-600">{user?.email}</p>
+                  <h2 className="text-lg font-medium text-gray-900">{profileData.name || 'User'}</h2>
+                  <p className="text-sm text-gray-600">{profileData.email || 'No email'}</p>
                 </div>
 
                 <Separator className="bg-gray-100 mb-6" />
@@ -165,7 +251,7 @@ const Profile = () => {
                     onClick={() => setActiveTab("wishlist")}
                   >
                     <Heart className="h-4 w-4 mr-2" />
-                    Wishlist
+                    Wishlist ({loadingWishlist ? '...' : wishlistItems.length})
                   </Button>
                   <Button
                     variant="ghost"
@@ -200,69 +286,75 @@ const Profile = () => {
               {/* Profile Tab */}
               <TabsContent value="profile" className="space-y-6">
                 <Card className="border border-gray-100 bg-white">
-                  <CardHeader className="pb-4">
+                  <CardHeader className="pb-4 flex flex-row items-center justify-between">
                     <CardTitle className="text-xl font-medium">Personal Information</CardTitle>
+                    {!isEditingProfile ? (
+                      <Button variant="outline" size="sm" onClick={handleEditClick}>
+                        Edit Profile
+                      </Button>
+                    ) : null}
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Full Name</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={user?.name || ''}
-                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
-                            readOnly
-                          />
-                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Label htmlFor="name" className="text-sm text-gray-600">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={profileData.name}
+                          onChange={handleInputChange}
+                          className={`bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0 ${!isEditingProfile ? 'read-only:bg-gray-100 read-only:cursor-not-allowed' : ''
+                            }`}
+                          placeholder="Enter your name"
+                          readOnly={!isEditingProfile}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Email</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={user?.email || ''}
-                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
-                            readOnly
-                          />
-                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Label htmlFor="email" className="text-sm text-gray-600">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          readOnly
+                          className="bg-gray-50/80 border-gray-200/80 cursor-not-allowed"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Phone</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={userDetails.phone}
-                            onChange={(e) => setUserDetails(prev => ({ ...prev, phone: e.target.value }))}
-                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
-                            placeholder="Add phone number"
-                          />
-                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Label htmlFor="phone" className="text-sm text-gray-600">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          value={profileData.phone}
+                          onChange={handleInputChange}
+                          className={`bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0 ${!isEditingProfile ? 'read-only:bg-gray-100 read-only:cursor-not-allowed' : ''
+                            }`}
+                          placeholder="Add phone number"
+                          readOnly={!isEditingProfile}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Address</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={userDetails.address}
-                            onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
-                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
-                            placeholder="Add address"
-                          />
-                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Label htmlFor="address" className="text-sm text-gray-600">Address</Label>
+                        <Input
+                          id="address"
+                          value={profileData.address}
+                          onChange={handleInputChange}
+                          className={`bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0 ${!isEditingProfile ? 'read-only:bg-gray-100 read-only:cursor-not-allowed' : ''
+                            }`}
+                          placeholder="Add address"
+                          readOnly={!isEditingProfile}
+                        />
                       </div>
                     </div>
+
+                    {isEditingProfile ? (
+                      <div className="flex justify-end">
+                        <Button onClick={handleSaveChanges} disabled={isSaving} className="bg-gray-900 hover:bg-gray-800 transition-colors">
+                          {isSaving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
 
+                {/* Payment Methods - Static for now */}
                 <Card className="border border-gray-100 bg-white">
                   <CardHeader className="pb-4">
                     <CardTitle className="text-xl font-medium">Payment Methods</CardTitle>
@@ -286,7 +378,7 @@ const Profile = () => {
                 </Card>
               </TabsContent>
 
-              {/* Orders Tab */}
+              {/* Orders Tab - Static data, replace with Firebase fetching later */}
               <TabsContent value="orders" className="space-y-6">
                 <Card className="border border-gray-100 bg-white">
                   <CardHeader className="pb-4">
@@ -297,19 +389,21 @@ const Profile = () => {
                       {orders.map((order) => (
                         <div
                           key={order.id}
-                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80"
+                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80 flex items-center gap-4"
                         >
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{order.id}</p>
-                            <p className="text-xs text-gray-600">{order.date}</p>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">Order ID: {order.id}</p>
+                              <p className="text-xs text-gray-600">Date: {order.date}</p>
+                            </div>
+                            <Badge className="bg-gray-100 text-gray-900 hover:bg-gray-200">
+                              {order.status}
+                            </Badge>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-gray-900">${order.total}</p>
-                            <p className="text-xs text-gray-600">{order.items} items</p>
+                          <div className="flex justify-between items-center mt-2">
+                            <p className="text-sm text-gray-600">{order.items} items</p>
+                            <p className="text-sm font-medium text-gray-900">Total: ${order.total.toFixed(2)}</p>
                           </div>
-                          <Badge className="bg-gray-100 text-gray-900 hover:bg-gray-200">
-                            {order.status}
-                          </Badge>
                         </div>
                       ))}
                     </div>
@@ -317,41 +411,59 @@ const Profile = () => {
                 </Card>
               </TabsContent>
 
-              {/* Wishlist Tab */}
+              {/* Wishlist Tab - Fetching data from Firebase */}
               <TabsContent value="wishlist" className="space-y-6">
                 <Card className="border border-gray-100 bg-white">
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-medium">Saved Items</CardTitle>
+                    <CardTitle className="text-xl font-medium">Your Wishlist</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {wishlist.map((item) => (
-                        <div
-                          key={item.id}
-                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80"
-                        >
-                          <div className="w-24 h-24 bg-gray-50/80 rounded-lg overflow-hidden">
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100/80 to-gray-200/80"></div>
+                    {loadingWishlist ? (
+                      <div className="text-center text-gray-500">Loading wishlist...</div>
+                    ) : wishlistItems.length === 0 ? (
+                      <div className="text-center text-gray-500">Your wishlist is empty.</div>
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {wishlistItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 transition-all duration-300 hover:border-gray-200/80 flex items-center gap-4 cursor-pointer"
+                            onClick={() => navigate(`/product/${item.id}`)}
+                          >
+                            <div className="w-16 h-16 bg-gray-50/80 rounded-lg overflow-hidden flex-shrink-0">
+                              <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 flex justify-between items-start">
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-900 mb-1 hover:text-blue-600 transition-colors">{item.title}</h3>
+                                <p className="text-sm font-medium text-gray-900">${item.price.toFixed(2)}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-500 hover:text-red-600 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFromWishlist(item.id);
+                                }}
+                                disabled={removingItemId === item.id}
+                              >
+                                {removingItemId === item.id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-sm font-medium text-gray-900 mb-1">{item.name}</h3>
-                            <p className="text-sm font-medium text-gray-900">${item.price}</p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-2 border-gray-200 hover:bg-gray-50"
-                            >
-                              Add to Cart
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Settings Tab */}
+              {/* Settings Tab - Static for now */}
               <TabsContent value="settings" className="space-y-6">
                 <Card className="border border-gray-100 bg-white">
                   <CardHeader className="pb-4">

@@ -1,57 +1,73 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 
 interface User {
-    id: string;
-    name: string;
-    email: string;
-    photoURL?: string;
+    id: string; // Firebase UID
+    uid: string; // Explicitly add uid for clarity and type checking
+    name: string | null;
+    email: string | null;
+    photoURL: string | null;
 }
 
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     signIn: (userData: User) => void;
-    signOut: () => void;
+    signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
-                setUser({
+                // User is signed in
+                const appUser: User = {
                     id: firebaseUser.uid,
-                    name: firebaseUser.displayName || '',
-                    email: firebaseUser.email || '',
-                    photoURL: firebaseUser.photoURL || ''
-                });
+                    uid: firebaseUser.uid, // Map uid here
+                    name: firebaseUser.displayName,
+                    email: firebaseUser.email,
+                    photoURL: firebaseUser.photoURL,
+                };
+                setUser(appUser);
+                setIsAuthenticated(true);
             } else {
+                // User is signed out
                 setUser(null);
+                setIsAuthenticated(false);
             }
         });
 
+        // Clean up the subscription
         return () => unsubscribe();
     }, []);
 
     const signIn = (userData: User) => {
         setUser(userData);
+        setIsAuthenticated(true);
     };
 
-    const signOut = () => {
-        auth.signOut();
-        setUser(null);
+    const signOut = async () => {
+        try {
+            await firebaseSignOut(auth);
+            setUser(null);
+            setIsAuthenticated(false);
+        } catch (error) {
+            console.error("Error signing out:", error);
+            throw error; // Re-throw to be caught by the component
+        }
     };
 
     return (
         <AuthContext.Provider
             value={{
                 user,
-                isAuthenticated: !!user,
+                isAuthenticated,
                 signIn,
                 signOut,
             }}

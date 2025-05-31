@@ -22,14 +22,19 @@ export interface Product {
   };
 }
 
-export async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch('https://dummyjson.com/products');
-  if (!response.ok) {
-    throw new Error('Failed to fetch products');
+export const fetchProducts = async (limit: number = 10, skip: number = 0) => {
+  try {
+    const response = await fetch(`https://dummyjson.com/products?limit=${limit}&skip=${skip}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch products');
+    }
+    const data = await response.json();
+    return data.products;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
   }
-  const data = await response.json();
-  return data.products;
-}
+};
 
 export async function fetchProductById(id: number): Promise<Product> {
   const response = await fetch(`https://dummyjson.com/products/${id}`);

@@ -6,15 +6,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Heart, Share2, Star, ChevronLeft, Minus, Plus, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { Product, fetchProductById } from "@/api/products";
+import { useAuth } from "@/context/AuthContext";
+import { addWishlistItem, removeWishlistItem, isItemInWishlist } from "@/firebase/firestore";
+import { toast } from "sonner";
+import SignInModal from "@/components/SignInModal";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -39,6 +47,54 @@ const ProductDetail = () => {
 
     loadProduct();
   }, [id]);
+
+  // Add useEffect to check wishlist status
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!isAuthenticated || !user || !id) return;
+
+      try {
+        const status = await isItemInWishlist(user.uid, id);
+        setIsInWishlist(status);
+      } catch (error) {
+        console.error("Error checking wishlist status:", error);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [isAuthenticated, user, id]);
+
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      setIsSignInModalOpen(true);
+      return;
+    }
+
+    if (!user || !product) return;
+
+    try {
+      setIsWishlistLoading(true);
+      if (isInWishlist) {
+        await removeWishlistItem(user.uid, product.id.toString());
+        toast.success("Removed from wishlist");
+      } else {
+        await addWishlistItem(user.uid, {
+          id: product.id.toString(),
+          title: product.title,
+          thumbnail: product.thumbnail,
+          price: product.price
+        });
+        toast.success("Added to wishlist");
+      }
+
+      setIsInWishlist(!isInWishlist);
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+      toast.error("Failed to update wishlist");
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -192,8 +248,18 @@ const ProductDetail = () => {
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Add to Cart - ${(product.price * quantity).toFixed(2)}
               </Button>
-              <Button variant="outline" size="icon">
-                <Heart className="h-5 w-5" />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleWishlistToggle}
+                className={isInWishlist ? "text-red-500" : ""}
+                disabled={isWishlistLoading}
+              >
+                {isWishlistLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
+                ) : (
+                  <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
+                )}
               </Button>
               <Button variant="outline" size="icon">
                 <Share2 className="h-5 w-5" />
@@ -298,6 +364,11 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+      />
     </div>
   );
 };

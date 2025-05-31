@@ -10,6 +10,8 @@ import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
 import Navbar from "@/components/Navbar";
+import { addWishlistItem, removeWishlistItem, isItemInWishlist, getWishlistItems } from "@/firebase/firestore";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -19,6 +21,8 @@ const Index = () => {
   const [cartItems, setCartItems] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [wishlistStatus, setWishlistStatus] = useState<Record<string, boolean>>({});
+  const [loadingWishlist, setLoadingWishlist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -26,6 +30,21 @@ const Index = () => {
         setLoading(true);
         const data = await fetchProducts();
         setProducts(data);
+
+        // Check wishlist status immediately after loading products
+        if (isAuthenticated && user) {
+          try {
+            const wishlistItems = await getWishlistItems(user.uid);
+            const status: Record<string, boolean> = {};
+            data.forEach(product => {
+              status[product.id] = wishlistItems.some(item => item.id === product.id.toString());
+            });
+            setWishlistStatus(status);
+          } catch (error) {
+            console.error("Error loading wishlist:", error);
+            toast.error("Failed to load wishlist status");
+          }
+        }
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
@@ -34,7 +53,47 @@ const Index = () => {
     };
 
     loadProducts();
-  }, []);
+  }, [isAuthenticated, user]);
+
+  const handleWishlistToggle = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      setIsSignInModalOpen(true);
+      return;
+    }
+
+    if (!user) return;
+
+    try {
+      setLoadingWishlist(prev => ({ ...prev, [product.id]: true }));
+      const isInWishlist = wishlistStatus[product.id];
+
+      if (isInWishlist) {
+        await removeWishlistItem(user.uid, product.id.toString());
+        toast.success("Removed from wishlist");
+      } else {
+        await addWishlistItem(user.uid, {
+          id: product.id.toString(),
+          title: product.title,
+          thumbnail: product.thumbnail,
+          price: product.price,
+          category: product.category
+        });
+        toast.success("Added to wishlist");
+      }
+
+      setWishlistStatus(prev => ({
+        ...prev,
+        [product.id]: !isInWishlist
+      }));
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+      toast.error("Failed to update wishlist");
+    } finally {
+      setLoadingWishlist(prev => ({ ...prev, [product.id]: false }));
+    }
+  };
 
   const categories = [
     { name: "Hoodies", image: "/Home/hoodie.png", count: 42 },
@@ -188,9 +247,15 @@ const Index = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-3 right-3 bg-white/80 hover:bg-white transition-all duration-300 opacity-0 group-hover:opacity-100"
+                      className={`absolute top-3 right-3 bg-white/80 hover:bg-white transition-all duration-300 opacity-0 group-hover:opacity-100 ${wishlistStatus[product.id] ? 'text-red-500' : ''}`}
+                      onClick={(e) => handleWishlistToggle(e, product)}
+                      disabled={loadingWishlist[product.id]}
                     >
-                      <Heart className="h-4 w-4" />
+                      {loadingWishlist[product.id] ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                      ) : (
+                        <Heart className={`h-4 w-4 ${wishlistStatus[product.id] ? 'fill-current' : ''}`} />
+                      )}
                     </Button>
                   </div>
 
@@ -227,16 +292,7 @@ const Index = () => {
                           </span>
                         )}
                       </div>
-                      <Button
-                        size="sm"
-                        className="bg-white border-[1px] text-black hover:text-white border-gray-800 hover:bg-gray-800 transition-all duration-300 hover:scale-105"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(product.id);
-                        }}
-                      >
-                        Add to Cart
-                      </Button>
+
                     </div>
                   </CardContent>
                 </Card>
