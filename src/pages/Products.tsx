@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,6 @@ import { addWishlistItem, removeWishlistItem, isItemInWishlist, getWishlistItems
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/ProductCard";
-import ProductFilters from "@/components/ProductFilters";
 import { debounce } from "lodash";
 import { motion } from "framer-motion";
 
@@ -67,7 +67,7 @@ const ProductCardSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
   </Card>
 );
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 12;
 
 const Products = () => {
   const navigate = useNavigate();
@@ -77,8 +77,8 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
   const [priceRange, setPriceRange] = useState("all");
-  const [categoriesOpen, setCategoriesOpen] = useState(true);
-  const [priceOpen, setPriceOpen] = useState(true);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
   const [colorsOpen, setColorsOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -89,14 +89,11 @@ const Products = () => {
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [wishlistStatus, setWishlistStatus] = useState<Record<string, boolean>>({});
   const [loadingWishlist, setLoadingWishlist] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Infinite scroll states
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
-  const [offset, setOffset] = useState(1);
-  const [isInView, setIsInView] = useState(false);
+  const [skip, setSkip] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
@@ -138,9 +135,6 @@ const Products = () => {
 
     try {
       setIsLoadingMore(true);
-      const skip = offset * ITEMS_PER_PAGE;
-
-      // Fetch next set of products from API
       const newProducts = await fetchProducts(ITEMS_PER_PAGE, skip);
 
       if (newProducts.length === 0) {
@@ -156,10 +150,8 @@ const Products = () => {
         }
       }));
 
-      // Update products and visible products
       setProducts(prev => [...prev, ...extendedProducts]);
-      setVisibleProducts(prev => [...prev, ...extendedProducts]);
-      setOffset(prev => prev + 1);
+      setSkip(prev => prev + ITEMS_PER_PAGE);
       setHasMore(newProducts.length === ITEMS_PER_PAGE);
 
       // Update wishlist status for new products
@@ -181,9 +173,9 @@ const Products = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [offset, isLoadingMore, hasMore, isAuthenticated, user]);
+  }, [skip, isLoadingMore, hasMore, isAuthenticated, user]);
 
-  // Setup Intersection Observer
+  // Setup Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -212,13 +204,6 @@ const Products = () => {
     };
   }, [loadMoreProducts, isLoadingMore, hasMore]);
 
-  // Update visible products when filters change
-  useEffect(() => {
-    setVisibleProducts(sortedProducts.slice(0, ITEMS_PER_PAGE));
-    setOffset(1);
-    setHasMore(sortedProducts.length > ITEMS_PER_PAGE);
-  }, [sortedProducts]);
-
   // Initial products load
   const loadProducts = useCallback(async () => {
     try {
@@ -234,9 +219,8 @@ const Products = () => {
       }));
 
       setProducts(extendedProducts);
-      setVisibleProducts(extendedProducts);
+      setSkip(ITEMS_PER_PAGE);
       setHasMore(data.length === ITEMS_PER_PAGE);
-      setOffset(1);
 
       if (isAuthenticated && user) {
         try {
@@ -264,7 +248,14 @@ const Products = () => {
     loadProducts();
   }, [loadProducts]);
 
-  // Move these functions before the productGrid useMemo
+  // Reset pagination when filters change
+  useEffect(() => {
+    setProducts([]);
+    setSkip(0);
+    setHasMore(true);
+    loadProducts();
+  }, [selectedCategory, priceRange, searchQuery]);
+
   const handleNavigate = useCallback((productId: string) => {
     navigate(`/product/${productId}`);
   }, [navigate]);
@@ -303,76 +294,13 @@ const Products = () => {
     }
   }, [user, wishlistStatus, products]);
 
-  // Memoize the product grid to prevent unnecessary re-renders
-  const productGrid = useMemo(() => (
-    <div
-      ref={containerRef}
-      className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6`}
-    >
-      {visibleProducts.map((product, index) => {
-        const recalculatedDelay = index >= ITEMS_PER_PAGE * 2
-          ? (index - ITEMS_PER_PAGE * (offset - 1)) / 15
-          : index / 15;
-
-        return (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.4,
-              ease: [0.25, 0.25, 0, 1],
-              delay: recalculatedDelay,
-            }}
-          >
-            <ProductCard
-              product={product}
-              viewMode={viewMode}
-              index={index}
-              wishlistStatus={wishlistStatus[product.id.toString()] || false}
-              loadingWishlist={loadingWishlist[product.id.toString()] || false}
-              onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-              onNavigate={() => handleNavigate(product.id.toString())}
-            />
-          </motion.div>
-        );
-      })}
-    </div>
-  ), [visibleProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, offset]);
-
-  // Memoize the loading indicator
-  const loadingIndicator = useMemo(() => (
-    isLoading && (
-      <div className="flex justify-center items-center py-8">
-        <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6 w-full`}>
-          {[...Array(3)].map((_, index) => (
-            <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
-          ))}
-        </div>
-      </div>
-    )
-  ), [isLoading, viewMode]);
-
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     if (!query.trim()) {
-      // If search is empty, load all products
-      try {
-        setLoading(true);
-        const data = await fetchProducts();
-        const extendedProducts: Product[] = data.map(product => ({
-          ...product,
-          meta: {
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        }));
-        setProducts(extendedProducts);
-      } catch (error) {
-        console.error('Error loading products:', error);
-      } finally {
-        setLoading(false);
-      }
+      setProducts([]);
+      setSkip(0);
+      setHasMore(true);
+      loadProducts();
       return;
     }
 
@@ -387,12 +315,13 @@ const Products = () => {
         }
       }));
       setProducts(extendedResults);
+      setHasMore(false); // Disable infinite scroll for search results
     } catch (error) {
       console.error('Error searching products:', error);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [loadProducts]);
 
   // Get unique categories from products
   const categories = ["all", ...new Set(products.map(product => product.category))];
@@ -406,220 +335,181 @@ const Products = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Navbar Component */}
         <Navbar />
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Filters Sidebar */}
-            <div className="w-full md:w-64 flex-shrink-0">
-              <ProductFilters
-                categories={categories}
-                selectedCategory={selectedCategory}
-                priceRange={priceRange}
-                searchQuery={searchQuery}
-                categoriesOpen={categoriesOpen}
-                priceOpen={priceOpen}
-                onCategoryChange={setSelectedCategory}
-                onPriceRangeChange={setPriceRange}
-                onSearchChange={setSearchQuery}
-                onCategoriesOpenChange={setCategoriesOpen}
-                onPriceOpenChange={setPriceOpen}
-                onClearFilters={handleClearFilters}
-              />
+        <div className="flex">
+          {/* Fixed Sidebar */}
+          <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-100 p-4 overflow-y-auto z-10">
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search products..."
+                  className="pl-10 h-9 text-sm"
+                  disabled
+                />
+              </div>
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded mb-2" />
+                  <div className="h-8 bg-gray-200 rounded" />
+                </div>
+              ))}
             </div>
+          </div>
 
-            {/* Products Grid */}
-            <div className="flex-1">
-              {/* View Toggle */}
-              <div className="flex justify-between items-center mb-6">
+          {/* Main Content */}
+          <div className="flex-1 ml-64 p-6">
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "outline"}
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => setViewMode("grid")}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8">
                     <Grid className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "outline"}
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => setViewMode("list")}
-                  >
+                  <Button variant="outline" size="icon" className="h-8 w-8">
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-gray-600">
-                  Loading products...
-                </p>
+                <p className="text-sm text-gray-600">Loading products...</p>
               </div>
+            </div>
 
-              {/* Products Grid/List */}
-              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6`}>
-                {[...Array(6)].map((_, index) => (
-                  <ProductCardSkeleton key={index} viewMode={viewMode} />
-                ))}
-              </div>
+            <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+              {[...Array(8)].map((_, index) => (
+                <ProductCardSkeleton key={index} viewMode={viewMode} />
+              ))}
             </div>
           </div>
         </div>
-
-        {/* Mobile Filter Button */}
-        <div className="md:hidden fixed bottom-6 right-6 z-40">
-          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <SheetTrigger asChild>
-              <Button className="rounded-full h-14 w-14 bg-gray-900/90 hover:bg-gray-800/90 shadow-lg/50">
-                <Filter className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] p-0">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-medium text-gray-900">Filters</h2>
-                  <Button variant="ghost" size="icon" onClick={() => setIsFilterOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                {/* Mobile Filter Content */}
-                <div className="space-y-6">
-                  {/* Categories */}
-                  <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                      Categories
-                      {categoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-2 py-3">
-                      {categories.map(category => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={category}
-                            checked={selectedCategory === category}
-                            onCheckedChange={() => setSelectedCategory(category)}
-                            className="border-gray-300"
-                          />
-                          <label
-                            htmlFor={category}
-                            className="text-sm text-gray-600 cursor-pointer flex-1 hover:text-gray-900 transition-colors"
-                          >
-                            {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
-                          </label>
-                        </div>
-                      ))}
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Price Range */}
-                  <Collapsible open={priceOpen} onOpenChange={setPriceOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                      Price Range
-                      {priceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="py-3">
-                      <Select value={priceRange} onValueChange={setPriceRange}>
-                        <SelectTrigger className="h-10 text-sm bg-gray-50 border-gray-200">
-                          <SelectValue placeholder="Select price range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Prices</SelectItem>
-                          <SelectItem value="under-50">Under $50</SelectItem>
-                          <SelectItem value="50-100">$50 - $100</SelectItem>
-                          <SelectItem value="100-150">$100 - $150</SelectItem>
-                          <SelectItem value="over-150">Over $150</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Colors */}
-                  <Collapsible open={colorsOpen} onOpenChange={setColorsOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                      Colors
-                      {colorsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="py-3">
-                      <div className="grid grid-cols-4 gap-3">
-                        {["Black", "White", "Gray", "Blue", "Red", "Green", "Navy", "Brown"].map(color => (
-                          <div
-                            key={color}
-                            className="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer hover:border-gray-400 transition-all duration-300 hover:scale-110"
-                            style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
-                          />
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Size */}
-                  <Collapsible open={sizeOpen} onOpenChange={setSizeOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-100">
-                      Size
-                      {sizeOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="py-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        {["XS", "S", "M", "L", "XL", "XXL"].map(size => (
-                          <Button
-                            key={size}
-                            variant="outline"
-                            size="sm"
-                            className="h-9 text-sm hover:bg-gray-900 hover:text-white transition-all duration-300"
-                          >
-                            {size}
-                          </Button>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        <SignInModal
-          isOpen={isSignInModalOpen}
-          onClose={() => setIsSignInModalOpen(false)}
-        />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar Component */}
       <Navbar />
+      
+      <div className="flex">
+        {/* Fixed Sidebar */}
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-100 p-4 overflow-y-auto z-10">
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search products..."
+                className="pl-10 h-9 text-sm"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+            </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <ProductFilters
-              categories={categories}
-              selectedCategory={selectedCategory}
-              priceRange={priceRange}
-              searchQuery={searchQuery}
-              categoriesOpen={categoriesOpen}
-              priceOpen={priceOpen}
-              onCategoryChange={setSelectedCategory}
-              onPriceRangeChange={setPriceRange}
-              onSearchChange={setSearchQuery}
-              onCategoriesOpenChange={setCategoriesOpen}
-              onPriceOpenChange={setPriceOpen}
-              onClearFilters={handleClearFilters}
-            />
+            {/* Categories */}
+            <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+                Categories
+                {categoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 mt-2">
+                {categories.map(category => (
+                  <div key={category} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={category}
+                      checked={selectedCategory === category}
+                      onCheckedChange={() => setSelectedCategory(category)}
+                    />
+                    <label htmlFor={category} className="text-sm cursor-pointer">
+                      {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
+                    </label>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Price Range */}
+            <Collapsible open={priceOpen} onOpenChange={setPriceOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+                Price Range
+                {priceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Select price range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="under-50">Under $50</SelectItem>
+                    <SelectItem value="50-100">$50 - $100</SelectItem>
+                    <SelectItem value="100-200">$100 - $200</SelectItem>
+                    <SelectItem value="over-200">Over $200</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Colors */}
+            <Collapsible open={colorsOpen} onOpenChange={setColorsOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+                Colors
+                {colorsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="grid grid-cols-4 gap-2">
+                  {["Black", "White", "Gray", "Blue", "Red", "Green", "Navy", "Brown"].map(color => (
+                    <div
+                      key={color}
+                      className="w-6 h-6 rounded-full border-2 border-gray-200 cursor-pointer hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
+                    />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Size */}
+            <Collapsible open={sizeOpen} onOpenChange={setSizeOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium">
+                Size
+                {sizeOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="grid grid-cols-3 gap-1">
+                  {["XS", "S", "M", "L", "XL", "XXL"].map(size => (
+                    <Button
+                      key={size}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Clear Filters */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-4"
+              onClick={handleClearFilters}
+            >
+              Clear Filters
+            </Button>
           </div>
+        </div>
 
-          {/* Products Grid */}
-          <div className="flex-1">
-            {/* View Toggle */}
-            <div className="flex justify-between items-center mb-6">
+        {/* Main Content */}
+        <div className="flex-1 ml-64 p-6">
+          {/* View Toggle and Sort */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Button
                   variant={viewMode === "grid" ? "default" : "outline"}
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   onClick={() => setViewMode("grid")}
                 >
                   <Grid className="h-4 w-4" />
@@ -627,89 +517,91 @@ const Products = () => {
                 <Button
                   variant={viewMode === "list" ? "default" : "outline"}
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   onClick={() => setViewMode("list")}
                 >
                   <List className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-sm text-gray-600">
-                {filteredProducts.length} products found
-              </p>
+              <div className="flex items-center gap-4">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-8 w-40 text-sm">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="featured">Featured</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-600">
+                  {sortedProducts.length} products found
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* Products Grid/List */}
-            {loading ? (
-              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6`}>
-                {[...Array(6)].map((_, index) => (
-                  <div key={index} className="bg-white rounded-xl border border-gray-100/80 overflow-hidden">
-                    <Skeleton className="w-full aspect-square" />
-                    <div className="p-4 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/4" />
-                    </div>
-                  </div>
+          {/* Products Grid */}
+          {sortedProducts.length === 0 && !loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No products found matching your criteria.</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={handleClearFilters}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
+                {sortedProducts.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: [0.25, 0.25, 0, 1],
+                      delay: (index % ITEMS_PER_PAGE) * 0.05,
+                    }}
+                  >
+                    <ProductCard
+                      product={product}
+                      viewMode={viewMode}
+                      index={index}
+                      wishlistStatus={wishlistStatus[product.id.toString()] || false}
+                      loadingWishlist={loadingWishlist[product.id.toString()] || false}
+                      onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
+                      onNavigate={() => handleNavigate(product.id.toString())}
+                    />
+                  </motion.div>
                 ))}
               </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No products found matching your criteria.</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={handleClearFilters}
-                >
-                  Clear Filters
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div
-                  ref={containerRef}
-                  className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6`}
-                >
-                  {visibleProducts.map((product, index) => {
-                    const recalculatedDelay = index >= ITEMS_PER_PAGE * 2
-                      ? (index - ITEMS_PER_PAGE * (offset - 1)) / 15
-                      : index / 15;
 
-                    return (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.4,
-                          ease: [0.25, 0.25, 0, 1],
-                          delay: recalculatedDelay,
-                        }}
-                      >
-                        <ProductCard
-                          product={product}
-                          viewMode={viewMode}
-                          index={index}
-                          wishlistStatus={wishlistStatus[product.id.toString()] || false}
-                          loadingWishlist={loadingWishlist[product.id.toString()] || false}
-                          onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                          onNavigate={() => handleNavigate(product.id.toString())}
-                        />
-                      </motion.div>
-                    );
-                  })}
-                </div>
-                {hasMore && (
-                  <div ref={loadingRef} className="flex justify-center items-center py-8">
-                    <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-6 w-full`}>
-                      {[...Array(3)].map((_, index) => (
+              {/* Infinite Scroll Loading Indicator */}
+              {hasMore && (
+                <div ref={loadingRef} className="flex justify-center items-center py-8">
+                  {isLoadingMore && (
+                    <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
+                      {[...Array(4)].map((_, index) => (
                         <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
                       ))}
                     </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                  )}
+                </div>
+              )}
+
+              {!hasMore && sortedProducts.length > 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">You've reached the end of the products.</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
