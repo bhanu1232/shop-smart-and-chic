@@ -1,358 +1,392 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { User, MapPin, CreditCard, Package, Heart, Settings, LogOut, Edit, ShoppingCart } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  User,
+  ShoppingCart,
+  Heart,
+  Settings,
+  LogOut,
+  Package,
+  CreditCard,
+  MapPin,
+  Mail,
+  Phone,
+  Edit2,
+  Camera,
+  Search,
+  Menu
+} from "lucide-react";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
+import { useAuth } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    avatar: "/placeholder.svg"
+  useScrollToTop();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState("profile");
+  const [userDetails, setUserDetails] = useState({
+    phone: "",
+    address: ""
   });
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Reset imageLoadFailed state if user or photoURL changes
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [user?.photoURL]);
+
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   const orders = [
     {
       id: "ORD-001",
-      date: "2024-01-15",
+      date: "2024-03-15",
       status: "Delivered",
-      total: 289.97,
+      total: 189.99,
       items: 3
     },
     {
       id: "ORD-002",
-      date: "2024-01-10",
-      status: "Shipped",
-      total: 149.99,
-      items: 2
-    },
-    {
-      id: "ORD-003",
-      date: "2024-01-05",
+      date: "2024-03-10",
       status: "Processing",
-      total: 79.99,
+      total: 89.99,
       items: 1
     }
   ];
 
-  const wishlistItems = [
+  const wishlist = [
     {
       id: 1,
       name: "Premium Streetwear Hoodie",
       price: 89.99,
-      originalPrice: 129.99,
       image: "/placeholder.svg"
     },
     {
       id: 2,
       name: "Urban Style Cargo Pants",
       price: 79.99,
-      originalPrice: 99.99,
       image: "/placeholder.svg"
     }
   ];
 
-  const addresses = [
-    {
-      id: 1,
-      type: "Home",
-      name: "John Doe",
-      street: "123 Main Street",
-      city: "New York",
-      state: "NY",
-      zip: "10001",
-      isDefault: true
-    },
-    {
-      id: 2,
-      type: "Work",
-      name: "John Doe",
-      street: "456 Business Ave",
-      city: "New York",
-      state: "NY",
-      zip: "10002",
-      isDefault: false
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 
-              className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent cursor-pointer"
-              onClick={() => navigate('/')}
-            >
-              Skena.co
-            </h1>
-            <nav className="hidden md:flex space-x-6">
-              <button onClick={() => navigate('/')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Home</button>
-              <button onClick={() => navigate('/products')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Products</button>
-              <button onClick={() => navigate('/about')} className="text-gray-700 hover:text-gray-900 transition-colors font-medium">About</button>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative hover:bg-gray-100 transition-colors"
-                onClick={() => navigate('/cart')}
-              >
-                <ShoppingCart className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost"
-                size="icon"
-                className="hover:bg-gray-100 transition-colors bg-gray-100"
-                onClick={() => navigate('/profile')}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => navigate('/')}
-                className="hover:bg-gray-100"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navbar Component */}
+      <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8">
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-gray-900 to-gray-700 text-white overflow-hidden">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-6">
-                <div className="w-24 h-24 bg-white/20 rounded-full overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-500"></div>
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
-                  <p className="text-gray-300 mb-2">{user.email}</p>
-                  <Badge className="bg-white/20 text-white border-white/30">
-                    Premium Member
-                  </Badge>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="border-white/30 text-white hover:bg-white hover:text-gray-900"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Profile Tabs */}
-        <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Orders
-            </TabsTrigger>
-            <TabsTrigger value="wishlist" className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Wishlist
-            </TabsTrigger>
-            <TabsTrigger value="addresses" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Addresses
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Orders Tab */}
-          <TabsContent value="orders" className="space-y-6">
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Order History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {orders.map((order, index) => (
-                    <div 
-                      key={order.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                      style={{ animationDelay: `${index * 0.1}s` }}
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="border border-gray-100 bg-white">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative mb-4">
+                    <div className="w-24 h-24 bg-gray-50/80 rounded-full overflow-hidden flex items-center justify-center">
+                      {user?.photoURL && !imageLoadFailed ? (
+                        <img
+                          src={user.photoURL}
+                          alt={user.name || 'User'}
+                          className="w-full h-full object-cover"
+                          onError={() => setImageLoadFailed(true)}
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-gray-400" />
+                      )}
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full border-gray-200 bg-white hover:bg-gray-50"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-2">
-                          <h3 className="font-semibold text-gray-900">Order {order.id}</h3>
-                          <Badge 
-                            variant={order.status === "Delivered" ? "default" : order.status === "Shipped" ? "secondary" : "outline"}
-                          >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <h2 className="text-lg font-medium text-gray-900">{user?.name || 'User'}</h2>
+                  <p className="text-sm text-gray-600">{user?.email}</p>
+                </div>
+
+                <Separator className="bg-gray-100 mb-6" />
+
+                <nav className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start text-sm font-medium ${activeTab === "profile"
+                      ? "text-gray-900 bg-gray-50"
+                      : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    onClick={() => setActiveTab("profile")}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start text-sm font-medium ${activeTab === "orders"
+                      ? "text-gray-900 bg-gray-50"
+                      : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    onClick={() => setActiveTab("orders")}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Orders
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start text-sm font-medium ${activeTab === "wishlist"
+                      ? "text-gray-900 bg-gray-50"
+                      : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    onClick={() => setActiveTab("wishlist")}
+                  >
+                    <Heart className="h-4 w-4 mr-2" />
+                    Wishlist
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start text-sm font-medium ${activeTab === "settings"
+                      ? "text-gray-900 bg-gray-50"
+                      : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    onClick={() => setActiveTab("settings")}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </nav>
+
+                <Separator className="bg-gray-100 my-6" />
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              {/* Profile Tab */}
+              <TabsContent value="profile" className="space-y-6">
+                <Card className="border border-gray-100 bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-medium">Personal Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Full Name</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={user?.name || ''}
+                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
+                            readOnly
+                          />
+                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Email</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={user?.email || ''}
+                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
+                            readOnly
+                          />
+                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Phone</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={userDetails.phone}
+                            onChange={(e) => setUserDetails(prev => ({ ...prev, phone: e.target.value }))}
+                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
+                            placeholder="Add phone number"
+                          />
+                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Address</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={userDetails.address}
+                            onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
+                            className="bg-gray-50 border-gray-200 focus:border-gray-300 focus:ring-0"
+                            placeholder="Add address"
+                          />
+                          <Button variant="outline" size="icon" className="border-gray-200 hover:bg-gray-50">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-gray-100 bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-medium">Payment Methods</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between p-4 border border-gray-100 rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center">
+                          <CreditCard className="h-4 w-4 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">•••• •••• •••• 4242</p>
+                          <p className="text-xs text-gray-600">Expires 12/25</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                        Edit
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Orders Tab */}
+              <TabsContent value="orders" className="space-y-6">
+                <Card className="border border-gray-100 bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-medium">Order History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <div
+                          key={order.id}
+                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{order.id}</p>
+                            <p className="text-xs text-gray-600">{order.date}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">${order.total}</p>
+                            <p className="text-xs text-gray-600">{order.items} items</p>
+                          </div>
+                          <Badge className="bg-gray-100 text-gray-900 hover:bg-gray-200">
                             {order.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {order.date} • {order.items} items • ${order.total}
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          {/* Wishlist Tab */}
-          <TabsContent value="wishlist" className="space-y-6">
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
-                  Wishlist
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {wishlistItems.map((item, index) => (
-                    <Card 
-                      key={item.id}
-                      className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-2 border-0 bg-white"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                      onClick={() => navigate(`/product/${item.id}`)}
-                    >
-                      <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300"></div>
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900">${item.price}</span>
-                          <span className="text-sm text-gray-500 line-through">${item.originalPrice}</span>
+              {/* Wishlist Tab */}
+              <TabsContent value="wishlist" className="space-y-6">
+                <Card className="border border-gray-100 bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-medium">Saved Items</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {wishlist.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80"
+                        >
+                          <div className="w-24 h-24 bg-gray-50/80 rounded-lg overflow-hidden">
+                            <div className="w-full h-full bg-gradient-to-br from-gray-100/80 to-gray-200/80"></div>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-900 mb-1">{item.name}</h3>
+                            <p className="text-sm font-medium text-gray-900">${item.price}</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 border-gray-200 hover:bg-gray-50"
+                            >
+                              Add to Cart
+                            </Button>
+                          </div>
                         </div>
-                        <Button className="w-full mt-3 bg-gray-900 hover:bg-gray-800">
-                          Add to Cart
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          {/* Addresses Tab */}
-          <TabsContent value="addresses" className="space-y-6">
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Saved Addresses
-                  </div>
-                  <Button className="bg-gray-900 hover:bg-gray-800">
-                    Add New Address
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {addresses.map((address, index) => (
-                    <div 
-                      key={address.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-300"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge variant={address.isDefault ? "default" : "outline"}>
-                          {address.type}
-                        </Badge>
-                        {address.isDefault && (
-                          <Badge variant="secondary">Default</Badge>
-                        )}
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="space-y-6">
+                <Card className="border border-gray-100 bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-medium">Account Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Email Notifications</Label>
+                        <div className="flex items-center justify-between p-4 border border-gray-100 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Order Updates</p>
+                            <p className="text-xs text-gray-600">Get notified about your order status</p>
+                          </div>
+                          <Button variant="outline" size="sm" className="border-gray-200 hover:bg-gray-50">
+                            Enabled
+                          </Button>
+                        </div>
                       </div>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <p className="font-medium text-gray-900">{address.name}</p>
-                        <p>{address.street}</p>
-                        <p>{address.city}, {address.state} {address.zip}</p>
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                        <Button variant="outline" size="sm">Edit</Button>
-                        <Button variant="outline" size="sm">Delete</Button>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Password</Label>
+                        <Button
+                          variant="outline"
+                          className="w-full border-gray-200 hover:bg-gray-50"
+                        >
+                          Change Password
+                        </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Full Name</label>
-                    <Input value={user.name} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Email</label>
-                    <Input value={user.email} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Phone</label>
-                    <Input value={user.phone} />
-                  </div>
-                  <Button className="w-full bg-gray-900 hover:bg-gray-800">
-                    Update Information
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Current Password</label>
-                    <Input type="password" placeholder="Enter current password" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">New Password</label>
-                    <Input type="password" placeholder="Enter new password" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Confirm Password</label>
-                    <Input type="password" placeholder="Confirm new password" />
-                  </div>
-                  <Button className="w-full bg-gray-900 hover:bg-gray-800">
-                    Change Password
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

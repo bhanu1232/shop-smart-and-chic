@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CreditCard, Truck, Shield, Check } from "lucide-react";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 const Checkout = () => {
   const navigate = useNavigate();
+  useScrollToTop();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     email: "",
@@ -40,7 +41,7 @@ const Checkout = () => {
       name: "Urban Style Cargo Pants",
       price: 79.99,
       quantity: 1,
-      size: "L", 
+      size: "L",
       image: "/placeholder.svg"
     }
   ];
@@ -84,7 +85,7 @@ const Checkout = () => {
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 
+            <h1
               className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent cursor-pointer"
               onClick={() => navigate('/')}
             >
@@ -103,9 +104,9 @@ const Checkout = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/cart')}
             className="p-0 h-auto text-gray-600 hover:text-gray-900"
           >
@@ -122,26 +123,23 @@ const Checkout = () => {
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    currentStep >= step.id 
-                      ? "bg-gray-900 text-white" 
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${currentStep >= step.id
+                      ? "bg-gray-900 text-white"
                       : "bg-gray-200 text-gray-600"
-                  }`}>
+                    }`}>
                     {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
                   </div>
                   <div className="ml-3">
-                    <p className={`text-sm font-semibold ${
-                      currentStep >= step.id ? "text-gray-900" : "text-gray-500"
-                    }`}>
+                    <p className={`text-sm font-semibold ${currentStep >= step.id ? "text-gray-900" : "text-gray-500"
+                      }`}>
                       {step.name}
                     </p>
                     <p className="text-xs text-gray-500">{step.description}</p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${
-                    currentStep > step.id ? "bg-gray-900" : "bg-gray-200"
-                  }`} />
+                  <div className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${currentStep > step.id ? "bg-gray-900" : "bg-gray-200"
+                    }`} />
                 )}
               </div>
             ))}
