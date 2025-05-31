@@ -28,17 +28,19 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
             console.log("Sign-in successful:", result);
 
             const user = result.user;
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const token = credential?.accessToken;
+            console.log("Firebase user:", user);
 
             // Sign in the user with Firebase user information - include uid property
-            signIn({
+            const userData = {
                 id: user.uid,
-                uid: user.uid, // Add the uid property that's required by the User interface
+                uid: user.uid,
                 name: user.displayName || '',
                 email: user.email || '',
                 photoURL: user.photoURL || ''
-            });
+            };
+            
+            console.log("User data to sign in:", userData);
+            signIn(userData);
 
             toast.success("Successfully signed in!");
             setIsLoading(false);
@@ -46,6 +48,8 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
             navigate('/profile');
         } catch (error: any) {
             console.error('Sign in failed:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
 
             // Handle specific error cases
             if (error.code === 'auth/popup-closed-by-user') {
@@ -64,6 +68,7 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
+            console.log("Dialog open state changed:", open);
             if (!open) onClose();
         }}>
             <DialogContent className="sm:max-w-[425px]">
