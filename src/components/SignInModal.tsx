@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,9 +31,10 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const token = credential?.accessToken;
 
-            // Sign in the user with Firebase user information
+            // Sign in the user with Firebase user information - include uid property
             signIn({
                 id: user.uid,
+                uid: user.uid, // Add the uid property that's required by the User interface
                 name: user.displayName || '',
                 email: user.email || '',
                 photoURL: user.photoURL || ''
@@ -119,4 +121,4 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
     );
 };
 
-export default SignInModal; 
+export default SignInModal;

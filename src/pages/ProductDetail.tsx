@@ -82,7 +82,8 @@ const ProductDetail = () => {
           id: product.id.toString(),
           title: product.title,
           thumbnail: product.thumbnail,
-          price: product.price
+          price: product.price,
+          category: product.category // Add the missing category property
         });
         toast.success("Added to wishlist");
       }
