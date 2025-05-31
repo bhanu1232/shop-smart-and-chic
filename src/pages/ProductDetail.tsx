@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Heart, Share2, Star, ChevronLeft, Minus, Plus, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { Product, fetchProductById } from "@/api/products";
 import { useAuth } from "@/context/AuthContext";
-import { addWishlistItem, removeWishlistItem, isItemInWishlist } from "@/firebase/firestore";
+import { addWishlistItem, removeWishlistItem, isItemInWishlist, addToCart, isItemInCart } from "@/firebase/firestore";
 import { toast } from "sonner";
 import SignInModal from "@/components/SignInModal";
 
@@ -23,6 +23,9 @@ const ProductDetail = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isInCart, setIsInCart] = useState(false);
+  const [isCartLoading, setIsCartLoading] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -64,6 +67,22 @@ const ProductDetail = () => {
     checkWishlistStatus();
   }, [isAuthenticated, user, id]);
 
+  // Add useEffect to check cart status
+  useEffect(() => {
+    const checkCartStatus = async () => {
+      if (!isAuthenticated || !user || !id) return;
+
+      try {
+        const status = await isItemInCart(user.uid, id);
+        setIsInCart(status);
+      } catch (error) {
+        console.error("Error checking cart status:", error);
+      }
+    };
+
+    checkCartStatus();
+  }, [isAuthenticated, user, id]);
+
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
       setIsSignInModalOpen(true);
@@ -94,6 +113,66 @@ const ProductDetail = () => {
       toast.error("Failed to update wishlist");
     } finally {
       setIsWishlistLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!product) return;
+
+    setIsSharing(true);
+    try {
+      const shareUrl = `${window.location.origin}/product/${product.id}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: product.title,
+          text: product.description,
+          url: shareUrl,
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Product link copied to clipboard!");
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error("Failed to share product");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      setIsSignInModalOpen(true);
+      return;
+    }
+
+    if (!user || !product) return;
+
+    setIsCartLoading(true);
+    try {
+      await addToCart(user.uid, {
+        id: product.id.toString(),
+        title: product.title,
+        thumbnail: product.thumbnail,
+        price: product.price,
+        quantity: quantity
+      });
+      setIsInCart(true);
+      toast.success("Added to cart!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
+    } finally {
+      setIsCartLoading(false);
+    }
+  };
+
+  const handleCartClick = () => {
+    if (isInCart) {
+      navigate('/cart');
+    } else {
+      handleAddToCart();
     }
   };
 
@@ -243,11 +322,16 @@ const ProductDetail = () => {
             {/* Action Buttons */}
             <div className="flex gap-4">
               <Button
-                className="flex-1"
-                disabled={product.stock === 0}
+                className={`flex-1 ${isInCart ? "bg-gray-900 hover:bg-gray-800" : ""}`}
+                disabled={product.stock === 0 || isCartLoading}
+                onClick={handleCartClick}
               >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Add to Cart - ${(product.price * quantity).toFixed(2)}
+                {isCartLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                ) : (
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                )}
+                {isInCart ? "Go to Cart" : `Add to Cart - $${(product.price * quantity).toFixed(2)}`}
               </Button>
               <Button
                 variant="outline"
@@ -262,8 +346,17 @@ const ProductDetail = () => {
                   <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
                 )}
               </Button>
-              <Button variant="outline" size="icon">
-                <Share2 className="h-5 w-5" />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleShare}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
+                ) : (
+                  <Share2 className="h-5 w-5" />
+                )}
               </Button>
             </div>
 

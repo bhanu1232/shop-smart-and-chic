@@ -1,11 +1,14 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Heart, Loader2, Share2, ShoppingCart } from "lucide-react";
 import { Product } from "@/api/products";
 import { memo } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { addToCart, isItemInCart } from "@/firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
     product: Product;
@@ -29,24 +32,82 @@ const ProductCard = memo(({
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    const [isInCart, setIsInCart] = useState(false);
+    const [isCartLoading, setIsCartLoading] = useState(false);
+    const { isAuthenticated, user } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const checkCartStatus = async () => {
+            if (!isAuthenticated || !user) return;
+            try {
+                const status = await isItemInCart(user.uid, product.id.toString());
+                setIsInCart(status);
+            } catch (error) {
+                console.error("Error checking cart status:", error);
+            }
+        };
+
+        checkCartStatus();
+    }, [isAuthenticated, user, product.id]);
+
+    const handleAddToCart = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (!isAuthenticated) {
+            toast.error("Please sign in to add items to cart");
+            return;
+        }
+
+        if (!user) return;
+
+        setIsCartLoading(true);
+        try {
+            await addToCart(user.uid, {
+                id: product.id.toString(),
+                title: product.title,
+                thumbnail: product.thumbnail,
+                price: product.price,
+                quantity: 1
+            });
+            setIsInCart(true);
+            toast.success("Added to cart!");
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            toast.error("Failed to add to cart");
+        } finally {
+            setIsCartLoading(false);
+        }
+    };
+
+    const handleCartClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isInCart) {
+            navigate('/cart');
+        } else {
+            handleAddToCart(e);
+        }
+    };
 
     const handleShare = async (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsSharing(true);
         try {
+            const shareUrl = `${window.location.origin}/product/${product.id}`;
             if (navigator.share) {
                 await navigator.share({
                     title: product.title,
                     text: product.description,
-                    url: window.location.href,
+                    url: shareUrl,
                 });
             } else {
                 // Fallback for browsers that don't support Web Share API
-                await navigator.clipboard.writeText(window.location.href);
-                // You might want to show a toast notification here
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("Product link copied to clipboard!");
             }
         } catch (error) {
             console.error('Error sharing:', error);
+            toast.error("Failed to share product");
         } finally {
             setIsSharing(false);
         }
@@ -159,16 +220,18 @@ const ProductCard = memo(({
                         )}
                     </div>
                     <Button
-                        variant="outline"
+                        variant={isInCart ? "default" : "outline"}
                         size="sm"
-                        className="h-9 text-sm border-gray-200 hover:border-gray-300 hover:bg-gray-50 group-hover:bg-gray-900 group-hover:text-white group-hover:border-gray-900 transition-all duration-300 flex-shrink-0"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // Add to cart functionality will be implemented here
-                        }}
+                        className={`h-9 text-sm border-gray-200 hover:border-gray-300 hover:bg-gray-50 group-hover:bg-gray-900 group-hover:text-white group-hover:border-gray-900 transition-all duration-300 flex-shrink-0 ${isInCart ? "bg-gray-900 text-white hover:bg-gray-800" : ""}`}
+                        onClick={handleCartClick}
+                        disabled={isCartLoading || product.stock === 0}
                     >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        Add
+                        {isCartLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                        )}
+                        {isInCart ? "Go to Cart" : "Add"}
                     </Button>
                 </div>
             </CardContent>

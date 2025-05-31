@@ -3,15 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, User, Search, Menu } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, Heart } from "lucide-react";
 import SignInModal from "./SignInModal";
 import { useAuth } from "@/context/AuthContext";
+import { getCartItems } from "@/firebase/firestore";
+import { CartItem } from "@/firebase/firestore";
 
 const Navbar = () => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
     const [imageLoadFailed, setImageLoadFailed] = useState(false);
+    const [cartCount, setCartCount] = useState(0);
 
     const handleCartClick = () => {
         if (!isAuthenticated) {
@@ -25,6 +28,25 @@ const Navbar = () => {
     useEffect(() => {
         setImageLoadFailed(false);
     }, [user?.photoURL]);
+
+    useEffect(() => {
+        const fetchCartCount = async () => {
+            if (!isAuthenticated || !user) {
+                setCartCount(0);
+                return;
+            }
+
+            try {
+                const cartItems = await getCartItems(user.uid);
+                const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+                setCartCount(totalItems);
+            } catch (error) {
+                console.error("Error fetching cart count:", error);
+            }
+        };
+
+        fetchCartCount();
+    }, [isAuthenticated, user]);
 
     return (
         <>
@@ -60,9 +82,11 @@ const Navbar = () => {
                                 onClick={handleCartClick}
                             >
                                 <ShoppingCart className="h-5 w-5" />
-                                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-gray-900 text-white text-xs flex items-center justify-center">
-                                    3
-                                </Badge>
+                                {cartCount > 0 && (
+                                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-gray-900 text-white text-xs flex items-center justify-center">
+                                        {cartCount}
+                                    </Badge>
+                                )}
                             </Button>
                             <div className="flex items-center">
                                 {isAuthenticated ? (

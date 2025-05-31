@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +89,7 @@ const Products = () => {
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [wishlistStatus, setWishlistStatus] = useState<Record<string, boolean>>({});
   const [loadingWishlist, setLoadingWishlist] = useState<Record<string, boolean>>({});
-  
+
   // Infinite scroll states
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -167,6 +166,7 @@ const Products = () => {
         }
       }));
 
+      // Update products first
       setProducts(prev => {
         const updated = [...prev, ...extendedProducts];
         console.log("Total products after load:", updated.length);
@@ -175,18 +175,19 @@ const Products = () => {
       setSkip(prev => prev + ITEMS_PER_PAGE);
       setHasMore(newProducts.length === ITEMS_PER_PAGE);
 
-      // Update wishlist status for new products
+      // Update wishlist status for new products in the background
       if (isAuthenticated && user) {
-        try {
-          const wishlistItems = await getWishlistItems(user.uid);
-          const status: Record<string, boolean> = {};
-          extendedProducts.forEach(product => {
-            status[product.id.toString()] = wishlistItems.some(item => item.id === product.id.toString());
+        getWishlistItems(user.uid)
+          .then(wishlistItems => {
+            const status: Record<string, boolean> = {};
+            extendedProducts.forEach(product => {
+              status[product.id.toString()] = wishlistItems.some(item => item.id === product.id.toString());
+            });
+            setWishlistStatus(prev => ({ ...prev, ...status }));
+          })
+          .catch(error => {
+            console.error("Error loading wishlist:", error);
           });
-          setWishlistStatus(prev => ({ ...prev, ...status }));
-        } catch (error) {
-          console.error("Error loading wishlist:", error);
-        }
       }
     } catch (error) {
       console.error('Error loading more products:', error);
@@ -198,18 +199,24 @@ const Products = () => {
 
   // Setup Intersection Observer with cleanup
   useEffect(() => {
-    cleanupObserver();
+    // Cleanup previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
 
+    // Don't set up observer if we're searching or have no more products
     if (!hasMore || searchQuery.trim()) {
       console.log("Observer not needed:", { hasMore, searchQuery });
       return;
     }
 
+    // Create new observer
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        console.log("Observer triggered:", entry.isIntersecting, "Loading:", isLoadingMore);
         if (entry.isIntersecting && !isLoadingMore && hasMore && !searchQuery.trim()) {
+          console.log("Loading more products triggered by observer");
           loadMoreProducts();
         }
       },
@@ -220,6 +227,7 @@ const Products = () => {
       }
     );
 
+    // Observe loading ref if it exists
     if (loadingRef.current) {
       observer.observe(loadingRef.current);
       console.log("Observer attached to loading ref");
@@ -227,18 +235,28 @@ const Products = () => {
 
     observerRef.current = observer;
 
-    return cleanupObserver;
-  }, [loadMoreProducts, isLoadingMore, hasMore, searchQuery, cleanupObserver]);
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, [loadMoreProducts, isLoadingMore, hasMore, searchQuery]);
 
   // Initial products load
   const loadProducts = useCallback(async () => {
     try {
       console.log("Loading initial products");
       setLoading(true);
-      setProducts([]);
-      setSkip(0);
-      setHasMore(true);
-      
+
+      // Only reset products if we're not already loading
+      if (products.length === 0) {
+        setProducts([]);
+        setSkip(0);
+        setHasMore(true);
+      }
+
       const data = await fetchProducts(ITEMS_PER_PAGE, 0);
       console.log("Initial products loaded:", data.length);
 
@@ -254,18 +272,19 @@ const Products = () => {
       setSkip(ITEMS_PER_PAGE);
       setHasMore(data.length === ITEMS_PER_PAGE);
 
+      // Update wishlist status for new products in the background
       if (isAuthenticated && user) {
-        try {
-          const wishlistItems = await getWishlistItems(user.uid);
-          const status: Record<string, boolean> = {};
-          extendedProducts.forEach(product => {
-            status[product.id.toString()] = wishlistItems.some(item => item.id === product.id.toString());
+        getWishlistItems(user.uid)
+          .then(wishlistItems => {
+            const status: Record<string, boolean> = {};
+            extendedProducts.forEach(product => {
+              status[product.id.toString()] = wishlistItems.some(item => item.id === product.id.toString());
+            });
+            setWishlistStatus(prev => ({ ...prev, ...status }));
+          })
+          .catch(error => {
+            console.error("Error loading wishlist:", error);
           });
-          setWishlistStatus(status);
-        } catch (error) {
-          console.error("Error loading wishlist:", error);
-          toast.error("Failed to load wishlist status");
-        }
       }
     } catch (error) {
       console.error('Error loading products:', error);
@@ -273,7 +292,7 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, products.length]);
 
   // Initial load
   useEffect(() => {
@@ -285,12 +304,14 @@ const Products = () => {
 
   // Reset pagination when filters change
   useEffect(() => {
-    if (!isInitialLoad.current) {
+    if (!isInitialLoad.current && (selectedCategory !== "all" || priceRange !== "all")) {
       console.log("Filters changed, reloading products");
-      cleanupObserver();
+      setProducts([]);
+      setSkip(0);
+      setHasMore(true);
       loadProducts();
     }
-  }, [selectedCategory, priceRange, loadProducts, cleanupObserver]);
+  }, [selectedCategory, priceRange, loadProducts]);
 
   const handleNavigate = useCallback((productId: string) => {
     navigate(`/product/${productId}`);
@@ -330,49 +351,66 @@ const Products = () => {
     }
   }, [user, wishlistStatus, products]);
 
-  const handleSearch = useCallback(async (query: string) => {
+  // Create debounced search function outside useCallback
+  const debouncedSearch = useMemo(
+    () => debounce(async (query: string) => {
+      console.log("Debounced search query:", query);
+      if (!query.trim()) {
+        loadProducts();
+        return;
+      }
+
+      try {
+        setIsSearching(true);
+        const results = await searchProducts(query);
+        console.log("Search results:", results.length);
+
+        const extendedResults: Product[] = results.map(product => ({
+          ...product,
+          meta: {
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        }));
+        setProducts(extendedResults);
+        setHasMore(false); // Disable infinite scroll for search results
+        setSkip(0);
+      } catch (error) {
+        console.error('Error searching products:', error);
+        toast.error('Failed to search products');
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500),
+    [loadProducts]
+  );
+
+  // Update handleSearch to use debounced search
+  const handleSearch = useCallback((query: string) => {
     console.log("Search query:", query);
     setSearchQuery(query);
     cleanupObserver();
-    
-    if (!query.trim()) {
-      loadProducts();
-      return;
-    }
+    debouncedSearch(query);
+  }, [cleanupObserver, debouncedSearch]);
 
-    try {
-      setIsSearching(true);
-      setLoading(true);
-      const results = await searchProducts(query);
-      console.log("Search results:", results.length);
-      
-      const extendedResults: Product[] = results.map(product => ({
-        ...product,
-        meta: {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      }));
-      setProducts(extendedResults);
-      setHasMore(false); // Disable infinite scroll for search results
-      setSkip(0);
-    } catch (error) {
-      console.error('Error searching products:', error);
-      toast.error('Failed to search products');
-    } finally {
-      setIsSearching(false);
-      setLoading(false);
-    }
-  }, [loadProducts, cleanupObserver]);
+  // Cleanup debounced search on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
 
   // Get unique categories from products
-  const categories = ["all", ...new Set(products.map(product => product.category))];
+  const categories = useMemo(() =>
+    ["all", ...new Set(products.map(product => product.category))],
+    [products]
+  );
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("all");
     setPriceRange("all");
-  };
+  }, []);
 
   // Add state for back to top button
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -393,6 +431,142 @@ const Products = () => {
       behavior: 'smooth'
     });
   };
+
+  // Memoize the product grid to prevent unnecessary re-renders
+  const productGrid = useMemo(() => (
+    <>
+      {sortedProducts.length === 0 && !loading ? (
+        <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
+          <div className="max-w-md mx-auto">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
+            <Button
+              variant="outline"
+              onClick={handleClearFilters}
+              className="border-gray-200 hover:bg-gray-50"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8`}>
+            {sortedProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  ease: [0.25, 0.25, 0, 1],
+                  delay: (index % ITEMS_PER_PAGE) * 0.05,
+                }}
+                className="w-full"
+              >
+                <ProductCard
+                  product={product}
+                  viewMode={viewMode}
+                  index={index}
+                  wishlistStatus={wishlistStatus[product.id.toString()] || false}
+                  loadingWishlist={loadingWishlist[product.id.toString()] || false}
+                  onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
+                  onNavigate={() => handleNavigate(product.id.toString())}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Infinite Scroll Loading Indicator */}
+          {hasMore && !searchQuery.trim() && (
+            <div ref={loadingRef} className="flex justify-center items-center py-8">
+              {isLoadingMore && (
+                <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8 w-full`}>
+                  {[...Array(3)].map((_, index) => (
+                    <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {(!hasMore || searchQuery.trim()) && sortedProducts.length > 0 && (
+            <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
+              <p className="text-gray-500">
+                {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  ), [sortedProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
+
+  // Memoize the sidebar to prevent re-renders
+  const sidebar = useMemo(() => (
+    <div className="hidden lg:block">
+      <ProductFilters
+        categories={categories}
+        selectedCategory={selectedCategory}
+        priceRange={priceRange}
+        searchQuery={searchQuery}
+        categoriesOpen={categoriesOpen}
+        priceOpen={priceOpen}
+        onCategoryChange={setSelectedCategory}
+        onPriceRangeChange={setPriceRange}
+        onSearchChange={handleSearch}
+        onCategoriesOpenChange={setCategoriesOpen}
+        onPriceOpenChange={setPriceOpen}
+        onClearFilters={handleClearFilters}
+      />
+    </div>
+  ), [categories, selectedCategory, priceRange, searchQuery, categoriesOpen, priceOpen, handleSearch, handleClearFilters]);
+
+  // Memoize the header controls to prevent re-renders
+  const headerControls = useMemo(() => (
+    <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="icon"
+            className="h-9 w-9 border-gray-200"
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="icon"
+            className="h-9 w-9 border-gray-200"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-4">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-9 w-48 text-sm border-gray-200 bg-white">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="featured">Featured</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-sm text-gray-500 font-medium">
+            {sortedProducts.length} products found
+          </div>
+        </div>
+      </div>
+    </div>
+  ), [viewMode, sortBy, sortedProducts.length]);
 
   if (loading) {
     return (
@@ -451,26 +625,11 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
           {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <ProductFilters
-              categories={categories}
-              selectedCategory={selectedCategory}
-              priceRange={priceRange}
-              searchQuery={searchQuery}
-              categoriesOpen={categoriesOpen}
-              priceOpen={priceOpen}
-              onCategoryChange={setSelectedCategory}
-              onPriceRangeChange={setPriceRange}
-              onSearchChange={handleSearch}
-              onCategoriesOpenChange={setCategoriesOpen}
-              onPriceOpenChange={setPriceOpen}
-              onClearFilters={handleClearFilters}
-            />
-          </div>
+          {sidebar}
 
           {/* Mobile Filter Sheet */}
           <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -551,113 +710,10 @@ const Products = () => {
           {/* Main Content */}
           <div className="space-y-6">
             {/* Header Controls */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "outline"}
-                    size="icon"
-                    className="h-9 w-9 border-gray-200"
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "outline"}
-                    size="icon"
-                    className="h-9 w-9 border-gray-200"
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-9 w-48 text-sm border-gray-200 bg-white">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="featured">Featured</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                      <SelectItem value="newest">Newest</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="text-sm text-gray-500 font-medium">
-                    {sortedProducts.length} products found
-                  </div>
-                </div>
-              </div>
-            </div>
+            {headerControls}
 
             {/* Products Grid */}
-            {sortedProducts.length === 0 && !loading ? (
-              <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
-                <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Search className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                  <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
-                  <Button
-                    variant="outline"
-                    onClick={handleClearFilters}
-                    className="border-gray-200 hover:bg-gray-50"
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
-                  {sortedProducts.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.4,
-                        ease: [0.25, 0.25, 0, 1],
-                        delay: (index % ITEMS_PER_PAGE) * 0.05,
-                      }}
-                    >
-                      <ProductCard
-                        product={product}
-                        viewMode={viewMode}
-                        index={index}
-                        wishlistStatus={wishlistStatus[product.id.toString()] || false}
-                        loadingWishlist={loadingWishlist[product.id.toString()] || false}
-                        onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                        onNavigate={() => handleNavigate(product.id.toString())}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Infinite Scroll Loading Indicator */}
-                {hasMore && !searchQuery.trim() && (
-                  <div ref={loadingRef} className="flex justify-center items-center py-8">
-                    {isLoadingMore && (
-                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6 w-full`}>
-                        {[...Array(4)].map((_, index) => (
-                          <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {(!hasMore || searchQuery.trim()) && sortedProducts.length > 0 && (
-                  <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
-                    <p className="text-gray-500">
-                      {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+            {productGrid}
           </div>
         </div>
       </div>

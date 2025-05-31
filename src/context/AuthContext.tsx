@@ -8,6 +8,7 @@ interface User {
     name: string | null;
     email: string | null;
     photoURL: string | null;
+    displayName: string | null;
 }
 
 interface AuthContextType {
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     name: firebaseUser.displayName,
                     email: firebaseUser.email,
                     photoURL: firebaseUser.photoURL,
+                    displayName: firebaseUser.displayName,
                 };
                 setUser(appUser);
                 setIsAuthenticated(true);
