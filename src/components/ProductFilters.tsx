@@ -37,7 +37,7 @@ const ProductFilters = memo(({
     onClearFilters
 }: ProductFiltersProps) => {
     return (
-        <div className="sticky top-16 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 ml-4 sm:ml-6 lg:ml-8">
+        <div className="sticky top-24 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6">
             <div className="flex items-center gap-2 mb-6">
                 <Filter className="h-4 w-4 text-gray-600" />
                 <h2 className="font-medium text-gray-900">Filters</h2>
