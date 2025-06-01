@@ -22,7 +22,14 @@ import { debounce } from "lodash";
 import { motion } from "framer-motion";
 import ProductFilters from "@/components/ProductFilters";
 
-// Extend the API Product type to include meta information
+// Type definitions
+type SortOption = 'newest' | 'price-low' | 'price-high' | 'popular' | 'rating';
+
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
 interface Product extends Omit<ApiProduct, 'meta'> {
   meta: {
     createdAt: string;
@@ -75,8 +82,8 @@ const Products = () => {
   const { isAuthenticated, user } = useAuth();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("featured");
-  const [priceRange, setPriceRange] = useState("all");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 1000 });
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [priceOpen, setPriceOpen] = useState(false);
   const [colorsOpen, setColorsOpen] = useState(false);
@@ -98,24 +105,18 @@ const Products = () => {
   const loadingRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
 
-  // Memoize filtered and sorted products
-  const filteredProducts = useMemo(() => {
-    console.log("Filtering products:", products.length, "Search:", searchQuery, "Category:", selectedCategory, "Price:", priceRange);
-    return products.filter((product) => {
-      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-      const matchesPrice = priceRange === "all" ||
-        (priceRange === "under-50" && product.price < 50) ||
-        (priceRange === "50-100" && product.price >= 50 && product.price <= 100) ||
-        (priceRange === "100-200" && product.price > 100 && product.price <= 200) ||
-        (priceRange === "over-200" && product.price > 200);
-      return matchesSearch && matchesCategory && matchesPrice;
-    });
-  }, [products, searchQuery, selectedCategory, priceRange]);
+  // Price range handler
+  const handlePriceRangeChange = useCallback((field: 'min' | 'max', value: string) => {
+    const numValue = value === '' ? 0 : Number(value);
+    setPriceRange(prev => ({
+      ...prev,
+      [field]: numValue
+    }));
+  }, []);
 
+  // Sort products
   const sortedProducts = useMemo(() => {
-    return [...filteredProducts].sort((a, b) => {
+    const sorted = [...products].sort((a, b) => {
       switch (sortBy) {
         case "price-low":
           return a.price - b.price;
@@ -125,18 +126,36 @@ const Products = () => {
           return b.rating - a.rating;
         case "newest":
           return new Date(b.meta?.createdAt || "").getTime() - new Date(a.meta?.createdAt || "").getTime();
+        case "popular":
+          return b.stock - a.stock;
         default:
           return 0;
       }
     });
-  }, [filteredProducts, sortBy]);
+    return sorted;
+  }, [products, sortBy]);
 
-  // Cleanup observer on unmount or when dependencies change
-  const cleanupObserver = useCallback(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
-    }
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    return sortedProducts.filter((product) => {
+      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+      const matchesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+  }, [sortedProducts, searchQuery, selectedCategory, priceRange]);
+
+  // Navigation handler
+  const handleNavigate = useCallback((productId: number) => {
+    navigate(`/product/${productId}`);
+  }, [navigate]);
+
+  // Clear filters
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setPriceRange({ min: 0, max: 1000 });
   }, []);
 
   // Load more products function with better error handling
@@ -166,13 +185,9 @@ const Products = () => {
         }
       }));
 
-      // Update products first
-      setProducts(prev => {
-        const updated = [...prev, ...extendedProducts];
-        console.log("Total products after load:", updated.length);
-        return updated;
-      });
-      setSkip(prev => prev + ITEMS_PER_PAGE);
+      // Update products by appending new products to the existing ones
+      setProducts(prevProducts => [...prevProducts, ...extendedProducts]);
+      setSkip(prevSkip => prevSkip + ITEMS_PER_PAGE);
       setHasMore(newProducts.length === ITEMS_PER_PAGE);
 
       // Update wishlist status for new products in the background
@@ -250,12 +265,10 @@ const Products = () => {
       console.log("Loading initial products");
       setLoading(true);
 
-      // Only reset products if we're not already loading
-      if (products.length === 0) {
-        setProducts([]);
-        setSkip(0);
-        setHasMore(true);
-      }
+      // Reset products state
+      setProducts([]);
+      setSkip(0);
+      setHasMore(true);
 
       const data = await fetchProducts(ITEMS_PER_PAGE, 0);
       console.log("Initial products loaded:", data.length);
@@ -292,7 +305,7 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user, products.length]);
+  }, [isAuthenticated, user]);
 
   // Initial load
   useEffect(() => {
@@ -304,7 +317,7 @@ const Products = () => {
 
   // Reset pagination when filters change
   useEffect(() => {
-    if (!isInitialLoad.current && (selectedCategory !== "all" || priceRange !== "all")) {
+    if (!isInitialLoad.current && (selectedCategory !== "all" || priceRange.min !== 0 || priceRange.max !== 1000)) {
       console.log("Filters changed, reloading products");
       setProducts([]);
       setSkip(0);
@@ -313,43 +326,14 @@ const Products = () => {
     }
   }, [selectedCategory, priceRange, loadProducts]);
 
-  const handleNavigate = useCallback((productId: string) => {
-    navigate(`/product/${productId}`);
-  }, [navigate]);
-
-  const handleWishlistToggle = useCallback(async (productId: string) => {
-    if (!user) {
-      setIsSignInModalOpen(true);
-      return;
-    }
-
-    setLoadingWishlist(prev => ({ ...prev, [productId]: true }));
-    try {
-      if (wishlistStatus[productId]) {
-        await removeWishlistItem(user.uid, productId);
-        setWishlistStatus(prev => ({ ...prev, [productId]: false }));
-        toast.success("Removed from wishlist");
-      } else {
-        const product = products.find(p => p.id.toString() === productId);
-        if (product) {
-          await addWishlistItem(user.uid, {
-            id: product.id.toString(),
-            title: product.title,
-            thumbnail: product.thumbnail,
-            price: product.price,
-            category: product.category
-          });
-          setWishlistStatus(prev => ({ ...prev, [productId]: true }));
-          toast.success("Added to wishlist");
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling wishlist:", error);
-      toast.error("Failed to update wishlist");
-    } finally {
-      setLoadingWishlist(prev => ({ ...prev, [productId]: false }));
-    }
-  }, [user, wishlistStatus, products]);
+  // Add handlePriceFilter function
+  const handlePriceFilter = useCallback(() => {
+    const filtered = products.filter(product => {
+      const price = product.price;
+      return price >= priceRange.min && price <= priceRange.max;
+    });
+    setProducts(filtered);
+  }, [products, priceRange]);
 
   // Create debounced search function outside useCallback
   const debouncedSearch = useMemo(
@@ -389,9 +373,8 @@ const Products = () => {
   const handleSearch = useCallback((query: string) => {
     console.log("Search query:", query);
     setSearchQuery(query);
-    cleanupObserver();
     debouncedSearch(query);
-  }, [cleanupObserver, debouncedSearch]);
+  }, [debouncedSearch]);
 
   // Cleanup debounced search on unmount
   useEffect(() => {
@@ -405,12 +388,6 @@ const Products = () => {
     ["all", ...new Set(products.map(product => product.category))],
     [products]
   );
-
-  const handleClearFilters = useCallback(() => {
-    setSearchQuery("");
-    setSelectedCategory("all");
-    setPriceRange("all");
-  }, []);
 
   // Add state for back to top button
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -432,10 +409,45 @@ const Products = () => {
     });
   };
 
+  // Add handleWishlistToggle before productGrid
+  const handleWishlistToggle = useCallback(async (productId: string) => {
+    if (!user) {
+      setIsSignInModalOpen(true);
+      return;
+    }
+
+    setLoadingWishlist(prev => ({ ...prev, [productId]: true }));
+    try {
+      if (wishlistStatus[productId]) {
+        await removeWishlistItem(user.uid, productId);
+        setWishlistStatus(prev => ({ ...prev, [productId]: false }));
+        toast.success("Removed from wishlist");
+      } else {
+        const product = products.find(p => p.id.toString() === productId);
+        if (product) {
+          await addWishlistItem(user.uid, {
+            id: product.id.toString(),
+            title: product.title,
+            thumbnail: product.thumbnail,
+            price: product.price,
+            category: product.category
+          });
+          setWishlistStatus(prev => ({ ...prev, [productId]: true }));
+          toast.success("Added to wishlist");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+      toast.error("Failed to update wishlist");
+    } finally {
+      setLoadingWishlist(prev => ({ ...prev, [productId]: false }));
+    }
+  }, [user, wishlistStatus, products]);
+
   // Memoize the product grid to prevent unnecessary re-renders
   const productGrid = useMemo(() => (
     <>
-      {sortedProducts.length === 0 && !loading ? (
+      {filteredProducts.length === 0 && !loading ? (
         <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
           <div className="max-w-md mx-auto">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -455,7 +467,7 @@ const Products = () => {
       ) : (
         <>
           <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8`}>
-            {sortedProducts.map((product, index) => (
+            {filteredProducts.map((product, index) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -474,7 +486,7 @@ const Products = () => {
                   wishlistStatus={wishlistStatus[product.id.toString()] || false}
                   loadingWishlist={loadingWishlist[product.id.toString()] || false}
                   onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                  onNavigate={() => handleNavigate(product.id.toString())}
+                  onNavigate={() => handleNavigate(product.id)}
                 />
               </motion.div>
             ))}
@@ -493,7 +505,7 @@ const Products = () => {
             </div>
           )}
 
-          {(!hasMore || searchQuery.trim()) && sortedProducts.length > 0 && (
+          {(!hasMore || searchQuery.trim()) && filteredProducts.length > 0 && (
             <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
               <p className="text-gray-500">
                 {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
@@ -503,27 +515,126 @@ const Products = () => {
         </>
       )}
     </>
-  ), [sortedProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
+  ), [filteredProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
 
-  // Memoize the sidebar to prevent re-renders
+  // Price range presets
+  const priceRanges = [
+    { label: "All Prices", value: { min: 0, max: 1000 } },
+    { label: "Under $50", value: { min: 0, max: 50 } },
+    { label: "$50 - $100", value: { min: 50, max: 100 } },
+    { label: "$100 - $200", value: { min: 100, max: 200 } },
+    { label: "$200 - $500", value: { min: 200, max: 500 } },
+    { label: "Over $500", value: { min: 500, max: 1000 } }
+  ];
+
+  // Handle price range selection
+  const handlePriceRangeSelect = useCallback((range: PriceRange) => {
+    setPriceRange(range);
+    // Reset pagination when price range changes
+    setProducts([]);
+    setSkip(0);
+    setHasMore(true);
+    loadProducts();
+  }, [loadProducts]);
+
+  // Update the sidebar JSX
   const sidebar = useMemo(() => (
     <div className="hidden lg:block">
-      <ProductFilters
-        categories={categories}
-        selectedCategory={selectedCategory}
-        priceRange={priceRange}
-        searchQuery={searchQuery}
-        categoriesOpen={categoriesOpen}
-        priceOpen={priceOpen}
-        onCategoryChange={setSelectedCategory}
-        onPriceRangeChange={setPriceRange}
-        onSearchChange={handleSearch}
-        onCategoriesOpenChange={setCategoriesOpen}
-        onPriceOpenChange={setPriceOpen}
-        onClearFilters={handleClearFilters}
-      />
+      <div className="sticky top-24 space-y-6">
+        {/* Sort Dropdown */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+          <h3 className="font-medium mb-4">Sort By</h3>
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="popular">Most Popular</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Price Range Filter */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+          <h3 className="font-medium mb-4">Price Range</h3>
+          <div className="space-y-4">
+            <Select
+              value={`${priceRange.min}-${priceRange.max}`}
+              onValueChange={(value) => {
+                const [min, max] = value.split('-').map(Number);
+                handlePriceRangeSelect({ min, max });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select price range" />
+              </SelectTrigger>
+              <SelectContent>
+                {priceRanges.map((range) => (
+                  <SelectItem
+                    key={`${range.value.min}-${range.value.max}`}
+                    value={`${range.value.min}-${range.value.max}`}
+                  >
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="Min"
+                value={priceRange.min || ''}
+                onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-slate-500">to</span>
+              <Input
+                type="number"
+                placeholder="Max"
+                value={priceRange.max || ''}
+                onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Categories Filter */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+          <h3 className="font-medium mb-4">Categories</h3>
+          <Select
+            value={selectedCategory}
+            onValueChange={(value) => setSelectedCategory(value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.filter(cat => cat !== "all").map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Clear Filters Button */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleClearFilters}
+        >
+          Clear Filters
+        </Button>
+      </div>
     </div>
-  ), [categories, selectedCategory, priceRange, searchQuery, categoriesOpen, priceOpen, handleSearch, handleClearFilters]);
+  ), [categories, selectedCategory, priceRange, sortBy, handlePriceRangeSelect, handlePriceRangeChange, handleClearFilters, priceRanges]);
 
   // Memoize the header controls to prevent re-renders
   const headerControls = useMemo(() => (
@@ -548,25 +659,25 @@ const Products = () => {
           </Button>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-9 w-48 text-sm border-gray-200 bg-white">
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="featured">Featured</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
               <SelectItem value="price-low">Price: Low to High</SelectItem>
               <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="popular">Most Popular</SelectItem>
               <SelectItem value="rating">Rating</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
             </SelectContent>
           </Select>
           <div className="text-sm text-gray-500 font-medium">
-            {sortedProducts.length} products found
+            {filteredProducts.length} products found
           </div>
         </div>
       </div>
     </div>
-  ), [viewMode, sortBy, sortedProducts.length]);
+  ), [viewMode, sortBy, filteredProducts.length]);
 
   if (loading) {
     return (
@@ -623,97 +734,172 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen bg-white">
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-          {/* Desktop Sidebar */}
-          {sidebar}
-
-          {/* Mobile Filter Sheet */}
-          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="lg:hidden fixed top-20 left-4 z-20 bg-white/90 backdrop-blur-sm border-gray-200">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0 bg-white">
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <Filter className="h-4 w-4 text-gray-600" />
-                  <h2 className="font-medium text-gray-900">Filters</h2>
-                </div>
-
-                {/* Search */}
-                <div className="mb-6">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search products..."
-                      className="pl-10 h-10 text-sm bg-gray-50 border-gray-200"
-                      value={searchQuery}
-                      onChange={(e) => handleSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Categories */}
-                <div className="space-y-4 mb-6">
-                  <h3 className="font-medium text-gray-900 text-sm">Categories</h3>
-                  {categories.map(category => (
-                    <div key={category} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`mobile-${category}`}
-                        checked={selectedCategory === category}
-                        onCheckedChange={() => setSelectedCategory(category)}
-                        className="border-gray-300"
-                      />
-                      <label htmlFor={`mobile-${category}`} className="text-sm text-gray-600 cursor-pointer">
-                        {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Price Range */}
-                <div className="mb-6">
-                  <h3 className="font-medium text-gray-900 text-sm mb-3">Price Range</h3>
-                  <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="h-10 text-sm bg-gray-50 border-gray-200">
-                      <SelectValue placeholder="Select price range" />
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Filters Sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <div className="sticky top-24">
+              <div className="space-y-6">
+                {/* Sort Dropdown */}
+                <div>
+                  <h3 className="font-medium mb-4">Sort By</h3>
+                  <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Prices</SelectItem>
-                      <SelectItem value="under-50">Under $50</SelectItem>
-                      <SelectItem value="50-100">$50 - $100</SelectItem>
-                      <SelectItem value="100-200">$100 - $200</SelectItem>
-                      <SelectItem value="over-200">Over $200</SelectItem>
+                      <SelectItem value="newest">Newest</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="popular">Most Popular</SelectItem>
+                      <SelectItem value="rating">Rating</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Clear Filters */}
+                {/* Price Range Filter */}
+                <div>
+                  <h3 className="font-medium mb-4">Price Range</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Min"
+                        value={priceRange.min || ''}
+                        onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                        className="w-full"
+                      />
+                      <span className="text-slate-500">to</span>
+                      <Input
+                        type="number"
+                        placeholder="Max"
+                        value={priceRange.max || ''}
+                        onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handlePriceFilter}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Categories Filter */}
+                <div>
+                  <h3 className="font-medium mb-4">Categories</h3>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={(value) => setSelectedCategory(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.filter(cat => cat !== "all").map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Clear Filters Button */}
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="w-full border-gray-200 hover:bg-gray-50"
+                  className="w-full"
                   onClick={handleClearFilters}
                 >
-                  Clear All Filters
+                  Clear Filters
                 </Button>
               </div>
-            </SheetContent>
-          </Sheet>
+            </div>
+          </div>
 
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* Header Controls */}
-            {headerControls}
+          {/* Products Grid/List */}
+          <div className="flex-1 mt-10">
 
-            {/* Products Grid */}
-            {productGrid}
+            {loading ? (
+              <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
+                {[...Array(6)].map((_, index) => (
+                  <ProductCardSkeleton key={index} viewMode={viewMode} />
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-medium text-slate-900 mb-2">No products found</h3>
+                <p className="text-slate-600">Try adjusting your filters</p>
+              </div>
+            ) : (
+              <>
+                <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
+                  {filteredProducts.map((product) => (
+                    <Card
+                      key={product.id}
+                      className={`group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden ${viewMode === 'list' ? 'flex' : ''}`}
+                      onClick={() => handleNavigate(product.id)}
+                    >
+                      <div className={`relative ${viewMode === 'list' ? 'w-64' : 'aspect-square'} bg-slate-100 overflow-hidden`}>
+                        <img
+                          src={product.thumbnail}
+                          alt={product.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {product.discountPercentage > 0 && (
+                          <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                            {Math.round(product.discountPercentage)}% OFF
+                          </Badge>
+                        )}
+                      </div>
+                      <CardContent className={`p-6 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                          <span className="text-xs text-slate-600 uppercase tracking-wide">{product.category}</span>
+                        </div>
+                        <h3 className="font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xl font-semibold text-slate-900">${product.price}</span>
+                          {product.discountPercentage > 0 && (
+                            <span className="text-sm text-slate-500 line-through">
+                              ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Infinite Scroll Loading Indicator */}
+                {hasMore && !searchQuery.trim() && (
+                  <div ref={loadingRef} className="flex justify-center items-center py-8">
+                    {isLoadingMore && (
+                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8 w-full`}>
+                        {[...Array(3)].map((_, index) => (
+                          <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(!hasMore || searchQuery.trim()) && filteredProducts.length > 0 && (
+                  <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
+                    <p className="text-gray-500">
+                      {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

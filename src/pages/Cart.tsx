@@ -120,7 +120,9 @@ const Cart = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar Component */}
-      <Navbar />
+      <div className="h-[70px]">
+        <Navbar />
+      </div>
 
       <div className="container mx-auto px-6 py-12 max-w-7xl">
 
@@ -141,7 +143,6 @@ const Cart = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Cart Items */}
             <div className="flex-1 space-y-4">
-              <h2 className="text-2xl font-medium text-gray-900 mb-8">Shopping Cart</h2>
               {cartItems.map((item) => (
                 <Card key={item.id} className="mb-4">
                   <CardContent className="p-6">

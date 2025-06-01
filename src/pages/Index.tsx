@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Search, Menu, Star, ArrowRight, User, Play, TruckIcon, Shield, RotateCcw } from "lucide-react";
+import { ShoppingCart, Search, Menu, Star, ArrowRight, User, Play, TruckIcon, Shield, RotateCcw, TrendingUp, Heart, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Product, fetchProducts } from "@/api/products";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
@@ -53,118 +52,69 @@ const Index = () => {
     { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy" }
   ];
 
+  const trendingCategories = [
+    { name: "Summer Collection", image: "/Home/s4.webp", count: 45 },
+    { name: "Winter Essentials", image: "/Home/s3.webp", count: 32 },
+    { name: "Street Style", image: "/Home/s2.webp", count: 28 }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <div className="h-[70px]">
+        <Navbar />
+      </div>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-[90vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-8 text-center lg:text-left">
-              <div className="space-y-6">
-                <Badge className="bg-slate-900 text-white px-4 py-2 text-sm font-medium rounded-full hover:bg-slate-800">
-                  New Collection 2024
-                </Badge>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-slate-900 leading-tight">
-                  Style That
-                  <br />
-                  <span className="font-semibold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-                    Speaks
-                  </span>
-                </h1>
-                <p className="text-xl md:text-2xl text-slate-600 max-w-md mx-auto lg:mx-0 leading-relaxed">
-                  Discover premium clothing that defines your unique style
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button 
-                  size="lg" 
-                  className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
-                  onClick={() => navigate('/products')}
-                >
-                  Shop Collection
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="border-2 border-slate-300 text-slate-900 hover:bg-slate-50 px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300"
-                >
-                  <Play className="mr-2 h-5 w-5" />
-                  Watch Lookbook
-                </Button>
-              </div>
-              
-              {/* Features */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8">
-                {features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-3 justify-center lg:justify-start">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <feature.icon className="h-5 w-5 text-slate-700" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm">{feature.title}</p>
-                      <p className="text-slate-600 text-xs">{feature.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl overflow-hidden shadow-2xl">
-                <img 
-                  src="/Home/Hero.jpg" 
-                  alt="Featured Fashion" 
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
-                <div className="flex items-center space-x-4">
-                  <div className="flex -space-x-2">
-                    {[1,2,3].map((i) => (
-                      <div key={i} className="w-8 h-8 bg-slate-200 rounded-full border-2 border-white"></div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">10k+ Happy Customers</p>
-                    <div className="flex items-center space-x-1">
-                      {[1,2,3,4,5].map((i) => (
-                        <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      ))}
-                      <span className="text-xs text-slate-600 ml-1">4.9</span>
-                    </div>
-                  </div>
+      {/* Hero Banner Section */}
+      <section className="relative h-[500px] overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="/Home/Hero.webp"
+            alt="Hero Banner"
+            className="w-full h-full object-cover"
+          />
+
+          <div onClick={() => navigate(`/products`)} className="absolute cursor-pointer inset-0 hover:bg-black/30"></div>
+        </div>
+
+      </section>
+
+      {/* Features Bar */}
+      <section className="bg-white border-b">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {features.map((feature, index) => (
+              <div key={index} className="flex items-center gap-6">
+                <div className="p-4 bg-slate-100 rounded-full">
+                  <feature.icon className="h-7 w-7 text-slate-900" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-1">{feature.title}</h3>
+                  <p className="text-slate-600">{feature.desc}</p>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Shop by Category Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-4">Shop by Category</h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-              Explore our curated collection of premium clothing
-            </p>
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">Shop by Category</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">Find your perfect style from our curated collection of premium streetwear</p>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {categories.map((category) => (
               <Card
                 key={category.name}
                 className={`group cursor-pointer border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${category.color}`}
                 onClick={() => navigate('/products')}
               >
-                <CardContent className="p-6 text-center">
-                  <div className="text-3xl mb-3">{category.icon}</div>
-                  <h3 className="font-medium text-slate-900 mb-1">{category.name}</h3>
-                  <p className="text-sm text-slate-600">{category.count} items</p>
+                <CardContent className="p-8 text-center">
+                  <div className="text-5xl mb-6">{category.icon}</div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{category.name}</h3>
+                  <p className="text-slate-600">{category.count} items</p>
                 </CardContent>
               </Card>
             ))}
@@ -172,42 +122,71 @@ const Index = () => {
         </div>
       </section>
 
-      {/* New Arrivals Section */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-2">New Arrivals</h2>
-              <p className="text-slate-600">Fresh styles just landed</p>
+      {/* Trending Categories */}
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">Trending Categories</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">Explore our most popular collections and stay ahead of the fashion curve</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {trendingCategories.map((category, index) => (
+              <Card key={index} className="group cursor-pointer overflow-hidden">
+                <div className="relative h-96">
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                  <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                    <h3 className="text-2xl font-bold mb-3">{category.name}</h3>
+                    <p className="text-white/90">{category.count} items</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-16">
+            <div className="text-center md:text-left mb-8 md:mb-0">
+              <h2 className="text-4xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">Featured Products</h2>
+              <p className="text-lg text-slate-600">Handpicked favorites from our latest collection</p>
             </div>
-            <Button 
-              variant="ghost" 
-              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+            <Button
+              variant="outline"
+              className="rounded-full px-8 py-6 text-lg"
               onClick={() => navigate('/products')}
             >
-              View All <ArrowRight className="ml-2 h-4 w-4" />
+              View All
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[...Array(4)].map((_, index) => (
-                <Card key={index} className="overflow-hidden animate-pulse bg-white">
+                <Card key={index} className="overflow-hidden animate-pulse">
                   <div className="aspect-square bg-slate-200" />
-                  <CardContent className="p-4">
-                    <div className="h-4 bg-slate-200 rounded mb-2" />
-                    <div className="h-4 bg-slate-200 rounded w-2/3 mb-2" />
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-slate-200 rounded mb-4" />
+                    <div className="h-4 bg-slate-200 rounded w-2/3 mb-4" />
                     <div className="h-6 bg-slate-200 rounded w-1/3" />
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {products.slice(0, 4).map((product) => (
                 <Card
                   key={product.id}
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden"
                   onClick={() => navigate(`/product/${product.id}`)}
                 >
                   <div className="relative aspect-square bg-slate-100 overflow-hidden">
@@ -217,19 +196,26 @@ const Index = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {product.discountPercentage > 0 && (
-                      <Badge className="absolute top-3 left-3 bg-slate-900 text-white px-2 py-1 text-xs">
+                      <Badge className="absolute top-4 left-4 bg-red-500 text-white">
                         {Math.round(product.discountPercentage)}% OFF
                       </Badge>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Heart className="h-5 w-5" />
+                    </Button>
                   </div>
-                  <CardContent className="p-4">
+                  <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                       <span className="text-xs text-slate-600 uppercase tracking-wide">{product.category}</span>
                     </div>
                     <h3 className="font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-semibold text-slate-900">${product.price}</span>
+                      <span className="text-xl font-semibold text-slate-900">${product.price}</span>
                       {product.discountPercentage > 0 && (
                         <span className="text-sm text-slate-500 line-through">
                           ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
@@ -244,22 +230,20 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-3xl p-12 md:p-16 text-center text-white">
-            <h2 className="text-3xl md:text-5xl font-light mb-6">
-              Join the Style Revolution
-            </h2>
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Get exclusive access to new collections, special offers, and style inspiration
+      {/* Newsletter Section */}
+      <section className="py-20 bg-slate-900 text-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-4xl font-bold mb-6">Join Our Community</h2>
+            <p className="text-xl text-slate-300 mb-8">
+              Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <Input
                 placeholder="Enter your email"
-                className="bg-white/10 border-white/20 text-white placeholder:text-slate-300 focus:border-white focus:ring-0"
+                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 rounded-full px-6 py-6"
               />
-              <Button className="bg-white text-slate-900 hover:bg-slate-100 px-8 font-medium">
+              <Button className="bg-white text-slate-900 hover:bg-slate-100 rounded-full px-8 py-6">
                 Subscribe
               </Button>
             </div>
@@ -269,17 +253,17 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-12">
             <div>
-              <h3 className="text-xl font-light mb-6">Skena.co</h3>
+              <h3 className="text-2xl font-bold mb-6">Skena.co</h3>
               <p className="text-slate-400 leading-relaxed">
                 Premium streetwear for the modern individual. Quality meets style in every piece.
               </p>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Quick Links</h4>
-              <ul className="space-y-3 text-slate-400">
+              <h4 className="font-semibold text-lg mb-6">Quick Links</h4>
+              <ul className="space-y-4 text-slate-400">
                 <li><button onClick={() => navigate('/about')} className="hover:text-white transition-colors">About Us</button></li>
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Products</button></li>
                 <li><a href="#" className="hover:text-white transition-colors">Size Guide</a></li>
@@ -287,8 +271,8 @@ const Index = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Categories</h4>
-              <ul className="space-y-3 text-slate-400">
+              <h4 className="font-semibold text-lg mb-6">Categories</h4>
+              <ul className="space-y-4 text-slate-400">
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">T-Shirts</button></li>
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Hoodies</button></li>
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Jeans</button></li>
@@ -296,8 +280,8 @@ const Index = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Support</h4>
-              <ul className="space-y-3 text-slate-400">
+              <h4 className="font-semibold text-lg mb-6">Support</h4>
+              <ul className="space-y-4 text-slate-400">
                 <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Shipping</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>

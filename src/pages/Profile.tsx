@@ -215,8 +215,9 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
+      <div className="h-[70px]">
+        <Navbar />
+      </div>
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Sidebar */}

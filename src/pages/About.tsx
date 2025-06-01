@@ -45,8 +45,9 @@ const About = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar Component */}
-      <Navbar />
-
+      <div className="h-[70px]">
+        <Navbar />
+      </div>
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('/placeholder.svg')] bg-cover bg-center opacity-10"></div>

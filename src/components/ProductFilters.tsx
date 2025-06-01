@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,12 +9,12 @@ import { memo } from "react";
 interface ProductFiltersProps {
     categories: string[];
     selectedCategory: string;
-    priceRange: string;
+    priceRange: { min: number; max: number };
     searchQuery: string;
     categoriesOpen: boolean;
     priceOpen: boolean;
     onCategoryChange: (category: string) => void;
-    onPriceRangeChange: (range: string) => void;
+    onPriceRangeChange: (range: { min: number; max: number }) => void;
     onSearchChange: (query: string) => void;
     onCategoriesOpenChange: (open: boolean) => void;
     onPriceOpenChange: (open: boolean) => void;
@@ -89,18 +88,25 @@ const ProductFilters = memo(({
                     {priceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="py-3">
-                    <Select value={priceRange} onValueChange={onPriceRangeChange}>
-                        <SelectTrigger className="h-10 text-sm bg-gray-50 border-gray-200">
-                            <SelectValue placeholder="Select price range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Prices</SelectItem>
-                            <SelectItem value="under-50">Under $50</SelectItem>
-                            <SelectItem value="50-100">$50 - $100</SelectItem>
-                            <SelectItem value="100-150">$100 - $150</SelectItem>
-                            <SelectItem value="over-150">Over $150</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                placeholder="Min"
+                                value={priceRange.min || ''}
+                                onChange={(e) => onPriceRangeChange({ ...priceRange, min: Number(e.target.value) || 0 })}
+                                className="w-full"
+                            />
+                            <span className="text-slate-500">to</span>
+                            <Input
+                                type="number"
+                                placeholder="Max"
+                                value={priceRange.max || ''}
+                                onChange={(e) => onPriceRangeChange({ ...priceRange, max: Number(e.target.value) || 0 })}
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
                 </CollapsibleContent>
             </Collapsible>
 

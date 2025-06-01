@@ -248,7 +248,9 @@ const Checkout = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <div className="h-[70px]">
+          <Navbar />
+        </div>
         <div className="container mx-auto px-6 py-12 max-w-7xl">
           <div className="text-center py-20">
             <h2 className="text-2xl font-medium text-gray-900 mb-3">Please Sign In</h2>
@@ -263,7 +265,9 @@ const Checkout = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <div className="h-[70px]">
+          <Navbar />
+        </div>
         <div className="container mx-auto px-6 py-12 max-w-7xl">
           <div className="flex justify-center items-center min-h-[400px]">
             <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
@@ -275,7 +279,9 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <div className="h-[70px]">
+        <Navbar />
+      </div>
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         {/* Progress Steps */}
         <div className="mb-8">
