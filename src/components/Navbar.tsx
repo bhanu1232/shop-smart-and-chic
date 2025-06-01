@@ -50,51 +50,58 @@ const Navbar = () => {
 
     const menuItems = [
         { name: "Home", path: "/", icon: Home },
-        { name: "Products", path: "/products", icon: Package },
         { name: "About", path: "/about", icon: Info },
     ];
 
     return (
         <>
-            <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
+                    <div className="flex items-center justify-between h-14">
                         {/* Logo */}
                         <div className="flex items-center">
                             <h1
-                                className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-gray-700 transition-colors"
+                                className="text-xl font-bold text-gray-900 cursor-pointer hover:text-gray-700 transition-colors"
                                 onClick={() => navigate('/')}
                             >
-                                Skena.co
+                                Strendzy
                             </h1>
                         </div>
 
                         {/* Desktop Navigation */}
-                        <nav className="hidden md:flex items-center space-x-8">
+                        <nav className="hidden md:flex items-center space-x-6">
                             {menuItems.map((item) => (
                                 <button
                                     key={item.name}
                                     onClick={() => navigate(item.path)}
-                                    className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200 relative group"
+                                    className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200"
                                 >
                                     {item.name}
-                                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-200 group-hover:w-full"></span>
                                 </button>
                             ))}
+                            <button
+                                onClick={() => navigate('/products')}
+                                className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200 flex items-center space-x-1"
+                            >
+                                <span>Pages</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
                         </nav>
 
                         {/* Right Actions */}
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3">
                             {/* Cart */}
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="relative hover:bg-gray-100 transition-colors"
+                                className="relative hover:bg-gray-100 transition-colors h-9 w-9"
                                 onClick={handleCartClick}
                             >
-                                <ShoppingCart className="h-5 w-5 text-gray-700" />
+                                <ShoppingCart className="h-4 w-4 text-gray-700" />
                                 {cartCount > 0 && (
-                                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-gray-900 text-white text-xs flex items-center justify-center">
+                                    <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gray-900 text-white text-xs flex items-center justify-center text-[10px] min-w-[16px]">
                                         {cartCount}
                                     </Badge>
                                 )}
@@ -105,22 +112,22 @@ const Navbar = () => {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="hover:bg-gray-100 transition-colors"
+                                    className="hover:bg-gray-100 transition-colors h-9 w-9"
                                     onClick={() => navigate('/profile')}
                                 >
-                                    <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 overflow-hidden">
+                                    <div className="relative flex items-center justify-center h-5 w-5 rounded-full bg-gray-200 overflow-hidden">
                                         <img
                                             src={user?.photoURL || ''}
                                             alt={user?.name || 'User'}
                                             className={`h-full w-full object-cover ${(!user?.photoURL || imageLoadFailed) ? 'hidden' : ''}`}
                                             onError={() => setImageLoadFailed(true)}
                                         />
-                                        <User className={`h-4 w-4 text-gray-600 ${(!user?.photoURL || imageLoadFailed) ? '' : 'hidden'}`} />
+                                        <User className={`h-3 w-3 text-gray-600 ${(!user?.photoURL || imageLoadFailed) ? '' : 'hidden'}`} />
                                     </div>
                                 </Button>
                             ) : (
                                 <Button
-                                    className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 text-white transition-colors"
+                                    className="hidden md:inline-flex bg-gray-900 hover:bg-gray-800 text-white transition-colors h-8 px-4 text-sm"
                                     onClick={() => setIsSignInModalOpen(true)}
                                 >
                                     Sign In
@@ -131,13 +138,13 @@ const Navbar = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="md:hidden hover:bg-gray-100 transition-colors"
+                                className="md:hidden hover:bg-gray-100 transition-colors h-9 w-9"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             >
                                 {isMobileMenuOpen ? (
-                                    <X className="h-5 w-5 text-gray-700" />
+                                    <X className="h-4 w-4 text-gray-700" />
                                 ) : (
-                                    <Menu className="h-5 w-5 text-gray-700" />
+                                    <Menu className="h-4 w-4 text-gray-700" />
                                 )}
                             </Button>
                         </div>
@@ -161,6 +168,17 @@ const Navbar = () => {
                                         <span>{item.name}</span>
                                     </button>
                                 ))}
+                                
+                                <button
+                                    onClick={() => {
+                                        navigate('/products');
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className="flex items-center space-x-3 w-full px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                                >
+                                    <Package className="h-5 w-5" />
+                                    <span>Products</span>
+                                </button>
 
                                 {/* Mobile Sign In */}
                                 {!isAuthenticated && (
