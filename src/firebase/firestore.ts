@@ -28,11 +28,11 @@ export interface CartItem {
 
 export interface OrderItem extends CartItem {
   orderDate: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  status: 'placed' | 'processing' | 'shipped' | 'delivered';
 }
 
 export interface Order {
-  id: string;
+  id?: string;
   userId: string;
   items: OrderItem[];
   total: number;
@@ -42,10 +42,12 @@ export interface Order {
     state: string;
     zipCode: string;
     country: string;
+    phone: string;
+    address: string;
   };
   paymentMethod: string;
   orderDate: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  status: 'placed' | 'processing' | 'shipped' | 'delivered';
   paymentId?: string;
   paymentStatus?: 'pending' | 'completed' | 'failed';
 }

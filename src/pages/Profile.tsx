@@ -23,12 +23,13 @@ import {
   Search,
   Menu,
   XCircle,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
-import { getUserProfile, setUserProfile, getWishlistItems, removeWishlistItem, WishlistItem } from "@/firebase/firestore";
+import { getUserProfile, setUserProfile, getWishlistItems, removeWishlistItem, WishlistItem, getOrders, Order } from "@/firebase/firestore";
 import { toast } from "sonner";
 
 const Profile = () => {
@@ -48,6 +49,8 @@ const Profile = () => {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loadingWishlist, setLoadingWishlist] = useState(true);
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -107,6 +110,28 @@ const Profile = () => {
     fetchWishlist();
   }, [isAuthenticated, user]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setOrders([]);
+      return;
+    }
+
+    const fetchOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const userOrders = await getOrders(user.uid);
+        setOrders(userOrders);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        toast.error("Failed to load orders.");
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [isAuthenticated, user]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setProfileData(prevData => ({
@@ -163,22 +188,22 @@ const Profile = () => {
     }
   };
 
-  const orders = [
-    {
-      id: "ORD-001",
-      date: "2024-03-15",
-      status: "Delivered",
-      total: 189.99,
-      items: 3
-    },
-    {
-      id: "ORD-002",
-      date: "2024-03-10",
-      status: "Processing",
-      total: 89.99,
-      items: 1
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  ];
+  };
 
   if (!isAuthenticated || loading) {
     return (
@@ -378,35 +403,84 @@ const Profile = () => {
                 </Card>
               </TabsContent>
 
-              {/* Orders Tab - Static data, replace with Firebase fetching later */}
+              {/* Orders Tab - Fetching data from Firebase */}
               <TabsContent value="orders" className="space-y-6">
-                <Card className="border border-gray-100 bg-white">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-medium">Order History</CardTitle>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Order History</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {orders.map((order) => (
-                        <div
-                          key={order.id}
-                          className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 transition-all duration-300 hover:border-gray-200/80 flex items-center gap-4"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">Order ID: {order.id}</p>
-                              <p className="text-xs text-gray-600">Date: {order.date}</p>
-                            </div>
-                            <Badge className="bg-gray-100 text-gray-900 hover:bg-gray-200">
-                              {order.status}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center mt-2">
-                            <p className="text-sm text-gray-600">{order.items} items</p>
-                            <p className="text-sm font-medium text-gray-900">Total: ${order.total.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    {loadingOrders ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                      </div>
+                    ) : orders.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                        <p className="text-gray-600">No orders found</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {orders.map((order) => (
+                          <Card key={order.id} className="border border-gray-100">
+                            <CardContent className="p-6">
+                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold">Order #{order.id.slice(0, 8)}</p>
+                                    <Badge className={getStatusColor(order.status)}>
+                                      {order.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-500">
+                                    Placed on {new Date(order.orderDate).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col md:items-end gap-1">
+                                  <p className="font-semibold">${order.total.toFixed(2)}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                                  </p>
+                                </div>
+                              </div>
+                              <Separator className="my-4" />
+                              <div className="space-y-3">
+                                {order.items.map((item) => (
+                                  <div key={item.id} className="flex items-center gap-4">
+                                    <img
+                                      src={item.thumbnail}
+                                      alt={item.title}
+                                      className="w-16 h-16 object-cover rounded-md"
+                                    />
+                                    <div className="flex-1">
+                                      <p className="font-medium">{item.title}</p>
+                                      <p className="text-sm text-gray-500">
+                                        Qty: {item.quantity} × ${item.price.toFixed(2)}
+                                      </p>
+                                    </div>
+                                    <p className="font-medium">
+                                      ${(item.price * item.quantity).toFixed(2)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                              {order.paymentStatus && (
+                                <div className="mt-4 pt-4 border-t">
+                                  <p className="text-sm text-gray-500">
+                                    Payment Status: <span className="font-medium">{order.paymentStatus}</span>
+                                  </p>
+                                  {order.paymentId && (
+                                    <p className="text-sm text-gray-500">
+                                      Payment ID: {order.paymentId}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

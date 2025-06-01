@@ -38,6 +38,10 @@ interface RazorpayResponse {
   razorpay_signature: string;
 }
 
+interface RazorpayInstance {
+  open: () => void;
+}
+
 declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => {
@@ -60,7 +64,9 @@ const Checkout = () => {
     city: "",
     state: "",
     zipCode: "",
-    country: ""
+    country: "",
+    phone: "",
+    address: ""
   });
 
   const steps = [
@@ -121,13 +127,13 @@ const Checkout = () => {
         items: cartItems.map(item => ({
           ...item,
           orderDate: new Date().toISOString(),
-          status: 'pending'
+          status: 'placed'
         })),
         total: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
         shippingAddress,
         paymentMethod: 'razorpay',
         orderDate: new Date().toISOString(),
-        status: 'pending'
+        status: 'placed'
       };
 
       const orderId = await createOrder(user.uid, orderData);
@@ -145,68 +151,80 @@ const Checkout = () => {
     }
   };
 
-  const handlePayment = async () => {
-    if (!isAuthenticated || !user) return;
-
-    const options: RazorpayOptions = {
-      key: RAZORPAY_KEY_ID,
-      amount: subtotal * 100,
-      currency: "INR",
-      name: "Shop Smart & Chic",
-      description: "Payment for your order",
-      handler: async function (response: RazorpayResponse) {
-        try {
-          setProcessing(true);
-          const orderData: Omit<Order, 'id'> = {
-            userId: user.uid,
-            items: cartItems.map(item => ({
-              ...item,
-              orderDate: new Date().toISOString(),
-              status: 'pending'
-            })),
-            total: subtotal,
-            shippingAddress,
-            paymentMethod: 'razorpay',
-            orderDate: new Date().toISOString(),
-            status: 'pending',
-            paymentId: response.razorpay_payment_id,
-            paymentStatus: 'completed'
-          };
-
-          const orderId = await createOrder(user.uid, orderData);
-          await clearCart(user.uid);
-
-          toast.success("Payment successful! Order placed.");
-          navigate('/'); // Navigate to home page after successful payment
-        } catch (error) {
-          console.error("Error processing order:", error);
-          toast.error("Failed to process order");
-        } finally {
-          setProcessing(false);
-        }
-      },
-      modal: {
-        ondismiss: function () {
-          toast.error("Payment cancelled");
-          setCurrentStep(2);
-        }
-      },
-      prefill: {
-        name: user.displayName || "",
-        email: user.email || "",
-        contact: ""
-      },
-      theme: {
-        color: "#000000"
-      }
-    };
+  const handlePaymentSuccess = async (response: RazorpayResponse) => {
+    if (!user) return;
+    setProcessing(true);
 
     try {
-      const razorpay = new window.Razorpay(options);
+      const orderData: Omit<Order, 'id'> = {
+        userId: user.uid,
+        items: cartItems.map(item => ({
+          ...item,
+          orderDate: new Date().toISOString(),
+          status: 'placed'
+        })),
+        total: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        shippingAddress,
+        paymentMethod: 'razorpay',
+        orderDate: new Date().toISOString(),
+        status: 'placed',
+        paymentId: response.razorpay_payment_id,
+        paymentStatus: 'completed'
+      };
+
+      const orderId = await createOrder(user.uid, orderData);
+      await clearCart(user.uid);
+
+      toast.success("Payment successful! Order placed.");
+      navigate('/'); // Navigate to home page after successful payment
+    } catch (error) {
+      console.error("Error processing order:", error);
+      toast.error("Failed to process order");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!user) return;
+    setProcessing(true);
+
+    try {
+      // Calculate total amount in paise (multiply by 100)
+      const amountInPaise = Math.round(cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100);
+
+      const options: RazorpayOptions = {
+        key: RAZORPAY_KEY_ID,
+        amount: amountInPaise,
+        currency: "INR",
+        name: "Shop Smart & Chic",
+        description: "Payment for your order",
+        handler: function (response: RazorpayResponse) {
+          handlePaymentSuccess(response);
+        },
+        prefill: {
+          name: user.name || "",
+          email: user.email || "",
+          contact: shippingAddress.phone || "",
+        },
+        theme: {
+          color: "#18181b",
+        },
+        modal: {
+          ondismiss: function () {
+            toast.error("Payment cancelled");
+            setProcessing(false);
+          }
+        }
+      };
+
+      const razorpay = new (window as unknown as { Razorpay: new (options: RazorpayOptions) => RazorpayInstance }).Razorpay(options);
       razorpay.open();
     } catch (error) {
-      console.error("Error initializing Razorpay:", error);
-      toast.error("Failed to initialize payment gateway");
+      console.error("Payment error:", error);
+      toast.error("Failed to initialize payment. Please try again.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -345,6 +363,16 @@ const Checkout = () => {
                         id="country"
                         name="country"
                         value={shippingAddress.country}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={shippingAddress.phone}
                         onChange={handleInputChange}
                         required
                       />
