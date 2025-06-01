@@ -279,17 +279,6 @@ const Profile = () => {
                     <Heart className="h-4 w-4 mr-2" />
                     Wishlist ({loadingWishlist ? '...' : wishlistItems.length})
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start text-sm font-medium ${activeTab === "settings"
-                      ? "text-gray-900 bg-gray-50"
-                      : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    onClick={() => setActiveTab("settings")}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
                 </nav>
 
                 <Separator className="bg-gray-100 my-6" />
@@ -534,40 +523,6 @@ const Profile = () => {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Settings Tab - Static for now */}
-              <TabsContent value="settings" className="space-y-6">
-                <Card className="border border-gray-100 bg-white">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-medium">Account Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Email Notifications</Label>
-                        <div className="flex items-center justify-between p-4 border border-gray-100 rounded-lg">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">Order Updates</p>
-                            <p className="text-xs text-gray-600">Get notified about your order status</p>
-                          </div>
-                          <Button variant="outline" size="sm" className="border-gray-200 hover:bg-gray-50">
-                            Enabled
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">Password</Label>
-                        <Button
-                          variant="outline"
-                          className="w-full border-gray-200 hover:bg-gray-50"
-                        >
-                          Change Password
-                        </Button>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

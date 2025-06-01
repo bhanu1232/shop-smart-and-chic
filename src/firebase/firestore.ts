@@ -1,5 +1,5 @@
 import { db } from "@/config/firebase";
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, query, where, writeBatch } from "firebase/firestore";
 
 interface UserProfile {
   name?: string;
@@ -27,8 +27,8 @@ export interface CartItem {
 }
 
 export interface OrderItem extends CartItem {
-  orderDate: string;
-  status: 'placed' | 'processing' | 'shipped' | 'delivered';
+  orderDate?: string; // Made optional as it might be set in the order creation process
+  status?: 'placed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'; // Added cancelled status and made optional
 }
 
 export interface Order {
@@ -46,8 +46,8 @@ export interface Order {
     address: string;
   };
   paymentMethod: string;
-  orderDate: string;
-  status: 'placed' | 'processing' | 'shipped' | 'delivered';
+  orderDate: string; // This will be the timestamp of the order creation
+  status: 'pending' | 'placed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'; // Added pending status
   paymentId?: string;
   paymentStatus?: 'pending' | 'completed' | 'failed';
 }
@@ -98,75 +98,54 @@ export const isItemInWishlist = async (userId: string, itemId: string): Promise<
 };
 
 // Cart Functions
-export const addToCart = async (userId: string, product: {
-  id: string;
-  title: string;
-  thumbnail: string;
-  price: number;
-  quantity: number;
-}) => {
-  const cartRef = doc(db, 'carts', userId);
-  const cartDoc = await getDoc(cartRef);
+export const addToCart = async (userId: string, product: CartItem): Promise<void> => {
+  const itemDocRef = doc(db, "users", userId, "cart", product.id);
+  const itemDocSnap = await getDoc(itemDocRef);
 
-  if (!cartDoc.exists()) {
-    // Create new cart if it doesn't exist
-    await setDoc(cartRef, {
-      items: [product]
+  if (itemDocSnap.exists()) {
+    // Item exists, update quantity
+    const existingItem = itemDocSnap.data() as CartItem;
+    await updateDoc(itemDocRef, {
+      quantity: existingItem.quantity + product.quantity
     });
   } else {
-    // Update existing cart
-    const cartData = cartDoc.data();
-    const existingItemIndex = cartData.items.findIndex((item: CartItem) => item.id === product.id);
-
-    if (existingItemIndex !== -1) {
-      // Update quantity if item exists
-      const updatedItems = [...cartData.items];
-      updatedItems[existingItemIndex].quantity += product.quantity;
-      await updateDoc(cartRef, { items: updatedItems });
-    } else {
-      // Add new item if it doesn't exist
-      await updateDoc(cartRef, {
-        items: [...cartData.items, product]
-      });
-    }
+    // Item does not exist, add new item
+    await setDoc(itemDocRef, product);
   }
 };
 
-export const removeFromCart = async (userId: string, productId: string) => {
-  const cartRef = doc(db, 'carts', userId);
-  const cartDoc = await getDoc(cartRef);
-
-  if (cartDoc.exists()) {
-    const cartData = cartDoc.data();
-    const updatedItems = cartData.items.filter((item: CartItem) => item.id !== productId);
-    await updateDoc(cartRef, { items: updatedItems });
-  }
+export const removeFromCart = async (userId: string, productId: string): Promise<void> => {
+  const itemDocRef = doc(db, "users", userId, "cart", productId);
+  await deleteDoc(itemDocRef);
 };
 
-export const getCartItems = async (userId: string) => {
-  const cartRef = doc(db, 'carts', userId);
-  const cartDoc = await getDoc(cartRef);
-
-  if (cartDoc.exists()) {
-    return cartDoc.data().items;
-  }
-  return [];
+export const getCartItems = async (userId: string): Promise<CartItem[]> => {
+  const cartCollectionRef = collection(db, "users", userId, "cart");
+  const querySnapshot = await getDocs(cartCollectionRef);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CartItem));
 };
 
-export const isItemInCart = async (userId: string, productId: string) => {
-  const cartRef = doc(db, 'carts', userId);
-  const cartDoc = await getDoc(cartRef);
+export const isItemInCart = async (userId: string, productId: string): Promise<boolean> => {
+  const itemDocRef = doc(db, "users", userId, "cart", productId);
+  const itemDocSnap = await getDoc(itemDocRef);
+  return itemDocSnap.exists();
+};
 
-  if (cartDoc.exists()) {
-    const cartData = cartDoc.data();
-    return cartData.items.some((item: CartItem) => item.id === productId);
-  }
-  return false;
+export const clearCart = async (userId: string): Promise<void> => {
+  const cartCollectionRef = collection(db, "users", userId, "cart");
+  const querySnapshot = await getDocs(cartCollectionRef);
+  
+  // Use a batch write for efficiency if clearing many items
+  const batch = writeBatch(db);
+  querySnapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
 };
 
 export const createOrder = async (userId: string, orderData: Omit<Order, 'id'>): Promise<string> => {
-  const ordersRef = collection(db, 'orders');
-  const newOrderRef = doc(ordersRef);
+  const userOrdersCollectionRef = collection(db, "users", userId, "orders");
+  const newOrderRef = doc(userOrdersCollectionRef);
   const orderId = newOrderRef.id;
 
   await setDoc(newOrderRef, {
@@ -174,22 +153,17 @@ export const createOrder = async (userId: string, orderData: Omit<Order, 'id'>):
     id: orderId,
     userId,
     orderDate: new Date().toISOString(),
-    status: 'pending'
+    status: orderData.status || 'placed', // Use provided status or default to placed
   });
 
   return orderId;
 };
 
-export const clearCart = async (userId: string): Promise<void> => {
-  const cartRef = doc(db, 'carts', userId);
-  await setDoc(cartRef, { items: [] });
-};
-
 export const getOrders = async (userId: string): Promise<Order[]> => {
-  const ordersRef = collection(db, 'orders');
-  const q = query(ordersRef, where('userId', '==', userId));
-  const querySnapshot = await getDocs(q);
+  const userOrdersCollectionRef = collection(db, "users", userId, "orders");
+  const querySnapshot = await getDocs(userOrdersCollectionRef);
   
+  // Map Firestore documents to Order type, including the document id
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()

@@ -52,7 +52,6 @@ const ProductCardSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
         </div>
         <div className="w-8 h-4 bg-gray-200 rounded animate-pulse" />
       </div>
-      <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" />
       {viewMode === "list" && (
         <div className="space-y-2 mb-4">
           <div className="h-4 bg-gray-200 rounded animate-pulse" />
@@ -235,11 +234,7 @@ const Products = () => {
           loadMoreProducts();
         }
       },
-      {
-        root: null,
-        rootMargin: '200px',
-        threshold: 0.1,
-      }
+      { root: null, rootMargin: '200px', threshold: 0.1 }
     );
 
     // Observe loading ref if it exists
@@ -315,7 +310,7 @@ const Products = () => {
     }
   }, [loadProducts]);
 
-  // Reset pagination when filters change
+  // Reset pagination when filters change (except for initial load)
   useEffect(() => {
     if (!isInitialLoad.current && (selectedCategory !== "all" || priceRange.min !== 0 || priceRange.max !== 1000)) {
       console.log("Filters changed, reloading products");
@@ -328,11 +323,15 @@ const Products = () => {
 
   // Add handlePriceFilter function
   const handlePriceFilter = useCallback(() => {
+    // Re-filter the current products based on price range
+    // Note: This assumes filtering is done client-side after initial fetch/search
+    // For large datasets, server-side filtering would be more performant
     const filtered = products.filter(product => {
       const price = product.price;
       return price >= priceRange.min && price <= priceRange.max;
     });
     setProducts(filtered);
+    setHasMore(false); // Disable infinite scroll after client-side filtering
   }, [products, priceRange]);
 
   // Create debounced search function outside useCallback
@@ -340,52 +339,50 @@ const Products = () => {
     () => debounce(async (query: string) => {
       console.log("Debounced search query:", query);
       if (!query.trim()) {
-        loadProducts();
+        loadProducts(); // Load initial products if search query is empty
         return;
       }
 
       try {
         setIsSearching(true);
-        const results = await searchProducts(query);
+        const results = await searchProducts(query); // Use searchProducts API call
         console.log("Search results:", results.length);
 
         const extendedResults: Product[] = results.map(product => ({
           ...product,
-          meta: {
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+          meta: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } // Add meta data
         }));
         setProducts(extendedResults);
         setHasMore(false); // Disable infinite scroll for search results
-        setSkip(0);
+        setSkip(0); // Reset skip
       } catch (error) {
         console.error('Error searching products:', error);
         toast.error('Failed to search products');
       } finally {
         setIsSearching(false);
       }
-    }, 500),
-    [loadProducts]
+    }, 500), // Debounce delay
+    [loadProducts] // Dependency array includes loadProducts
   );
 
   // Update handleSearch to use debounced search
   const handleSearch = useCallback((query: string) => {
     console.log("Search query:", query);
     setSearchQuery(query);
+    // Trigger debounced search only after a delay
     debouncedSearch(query);
   }, [debouncedSearch]);
 
   // Cleanup debounced search on unmount
   useEffect(() => {
     return () => {
-      debouncedSearch.cancel();
+      debouncedSearch.cancel(); // Cancel any pending debounced calls
     };
   }, [debouncedSearch]);
 
-  // Get unique categories from products
+  // Get unique categories from products (consider fetching categories separately if needed)
   const categories = useMemo(() =>
-    ["all", ...new Set(products.map(product => product.category))],
+    ["all", ...new Set(products.map(product => product.category).filter(Boolean))], // Filter out potential undefined/null categories
     [products]
   );
 
@@ -403,10 +400,7 @@ const Products = () => {
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Add handleWishlistToggle before productGrid
@@ -447,7 +441,17 @@ const Products = () => {
   // Memoize the product grid to prevent unnecessary re-renders
   const productGrid = useMemo(() => (
     <>
-      {filteredProducts.length === 0 && !loading ? (
+      {/* Initial Loading Skeleton */}
+      {loading && (
+        <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8 w-full`}>
+          {[...Array(3)].map((_, index) => (
+            <ProductCardSkeleton key={`initial-loading-${index}`} viewMode={viewMode} />
+          ))}
+        </div>
+      )}
+
+      {/* No Products Found Message */}
+      {!loading && filteredProducts.length === 0 ? (
         <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
           <div className="max-w-md mx-auto">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -466,34 +470,37 @@ const Products = () => {
         </div>
       ) : (
         <>
-          <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8`}>
-            {filteredProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.4,
-                  ease: [0.25, 0.25, 0, 1],
-                  delay: (index % ITEMS_PER_PAGE) * 0.05,
-                }}
-                className="w-full"
-              >
-                <ProductCard
-                  product={product}
-                  viewMode={viewMode}
-                  index={index}
-                  wishlistStatus={wishlistStatus[product.id.toString()] || false}
-                  loadingWishlist={loadingWishlist[product.id.toString()] || false}
-                  onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                  onNavigate={() => handleNavigate(product.id)}
-                />
-              </motion.div>
-            ))}
-          </div>
+          {/* Actual Product Grid */}
+          {!loading && filteredProducts.length > 0 && (
+            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
+              {filteredProducts.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.4,
+                    ease: [0.25, 0.25, 0, 1],
+                    delay: (index % ITEMS_PER_PAGE) * 0.05,
+                  }}
+                  className="w-full"
+                >
+                  <ProductCard
+                    product={product}
+                    viewMode={viewMode}
+                    index={index}
+                    wishlistStatus={wishlistStatus[product.id.toString()] || false}
+                    loadingWishlist={loadingWishlist[product.id.toString()] || false}
+                    onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
+                    onNavigate={() => handleNavigate(product.id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {/* Infinite Scroll Loading Indicator */}
-          {hasMore && !searchQuery.trim() && (
+          {hasMore && !searchQuery.trim() && ( /* Keep this as is */
             <div ref={loadingRef} className="flex justify-center items-center py-8">
               {isLoadingMore && (
                 <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8 w-full`}>
@@ -505,7 +512,8 @@ const Products = () => {
             </div>
           )}
 
-          {(!hasMore || searchQuery.trim()) && filteredProducts.length > 0 && (
+          {/* End of Results Message */}
+          {(!hasMore || searchQuery.trim()) && !isLoadingMore && filteredProducts.length > 0 && (
             <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
               <p className="text-gray-500">
                 {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
@@ -539,13 +547,26 @@ const Products = () => {
 
   // Update the sidebar JSX
   const sidebar = useMemo(() => (
-    <div className="hidden lg:block">
-      <div className="sticky top-24 space-y-6">
+    <div className="w-full md:w-64 flex-shrink-0">
+      <div className="sticky top-24 space-y-8">
+        {/* Search Bar */}
+        <div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full pl-10 bg-gray-50/50 border-gray-200 focus:border-gray-300 focus:ring-0"
+            />
+          </div>
+        </div>
+
         {/* Sort Dropdown */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
-          <h3 className="font-medium mb-4">Sort By</h3>
+        <div>
           <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full bg-gray-50/50 border-gray-200 focus:border-gray-300 focus:ring-0">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -558,60 +579,14 @@ const Products = () => {
           </Select>
         </div>
 
-        {/* Price Range Filter */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
-          <h3 className="font-medium mb-4">Price Range</h3>
-          <div className="space-y-4">
-            <Select
-              value={`${priceRange.min}-${priceRange.max}`}
-              onValueChange={(value) => {
-                const [min, max] = value.split('-').map(Number);
-                handlePriceRangeSelect({ min, max });
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select price range" />
-              </SelectTrigger>
-              <SelectContent>
-                {priceRanges.map((range) => (
-                  <SelectItem
-                    key={`${range.value.min}-${range.value.max}`}
-                    value={`${range.value.min}-${range.value.max}`}
-                  >
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={priceRange.min || ''}
-                onChange={(e) => handlePriceRangeChange('min', e.target.value)}
-                className="w-full"
-              />
-              <span className="text-slate-500">to</span>
-              <Input
-                type="number"
-                placeholder="Max"
-                value={priceRange.max || ''}
-                onChange={(e) => handlePriceRangeChange('max', e.target.value)}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Categories Filter */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
-          <h3 className="font-medium mb-4">Categories</h3>
+        <div>
           <Select
             value={selectedCategory}
             onValueChange={(value) => setSelectedCategory(value)}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select category" />
+            <SelectTrigger className="w-full bg-gray-50/50 border-gray-200 focus:border-gray-300 focus:ring-0">
+              <SelectValue placeholder="Categories" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
@@ -624,282 +599,106 @@ const Products = () => {
           </Select>
         </div>
 
+        {/* Price Range Filter */}
+        <div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="Min"
+                value={priceRange.min || ''}
+                onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                className="w-full bg-gray-50/50 border-gray-200 focus:border-gray-300 focus:ring-0"
+              />
+              <span className="text-slate-400">to</span>
+              <Input
+                type="number"
+                placeholder="Max"
+                value={priceRange.max || ''}
+                onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                className="w-full bg-gray-50/50 border-gray-200 focus:border-gray-300 focus:ring-0"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Clear Filters Button */}
         <Button
-          variant="outline"
-          className="w-full"
+          variant="ghost"
+          className="w-full text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           onClick={handleClearFilters}
         >
           Clear Filters
         </Button>
       </div>
     </div>
-  ), [categories, selectedCategory, priceRange, sortBy, handlePriceRangeSelect, handlePriceRangeChange, handleClearFilters, priceRanges]);
+  ), [categories, selectedCategory, priceRange, sortBy, handlePriceRangeChange, handleClearFilters, searchQuery, handleSearch]);
 
   // Memoize the header controls to prevent re-renders
   const headerControls = useMemo(() => (
-    <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100/80 p-4 shadow-sm">
+    <div className="bg-white/50 backdrop-blur-sm rounded-lg border border-gray-100/50 p-3 shadow-sm hidden lg:block">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
+            variant={viewMode === "grid" ? "default" : "ghost"}
             size="icon"
-            className="h-9 w-9 border-gray-200"
+            className="h-8 w-8"
             onClick={() => setViewMode("grid")}
           >
             <Grid className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "list" ? "default" : "outline"}
+            variant={viewMode === "list" ? "default" : "ghost"}
             size="icon"
-            className="h-9 w-9 border-gray-200"
+            className="h-8 w-8"
             onClick={() => setViewMode("list")}
           >
             <List className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-4">
-          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
-              <SelectItem value="popular">Most Popular</SelectItem>
-              <SelectItem value="rating">Rating</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="text-sm text-gray-500 font-medium">
-            {filteredProducts.length} products found
-          </div>
+        <div className="text-sm text-gray-500">
+          {filteredProducts.length} products
         </div>
       </div>
     </div>
-  ), [viewMode, sortBy, filteredProducts.length]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-            {/* Sidebar Skeleton */}
-            <div className="hidden lg:block">
-              <div className="sticky top-24 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100/80 p-6 shadow-sm">
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search products..."
-                      className="pl-10 h-9 text-sm"
-                      disabled
-                    />
-                  </div>
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded mb-2" />
-                      <div className="h-8 bg-gray-200 rounded" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8 border-gray-200">
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8 border-gray-200">
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-sm text-gray-500">Loading products...</p>
-              </div>
-
-              <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"} gap-6`}>
-                {[...Array(8)].map((_, index) => (
-                  <ProductCardSkeleton key={index} viewMode={viewMode} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  ), [viewMode, filteredProducts.length]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="h-[40px]">
+        <Navbar />
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <div className="sticky top-24">
-              <div className="space-y-6">
-                {/* Sort Dropdown */}
-                <div>
-                  <h3 className="font-medium mb-4">Sort By</h3>
-                  <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="popular">Most Popular</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      <div className="container mx-auto px-0 py-6 lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
+        {/* Filters Sidebar */}
+        <div className="hidden lg:block lg:relative z-10">
+          <div className="lg:fixed lg:top-[70px] lg:bottom-0 lg:w-[280px] lg:overflow-y-auto lg:p-6 lg:bg-white/80 lg:backdrop-blur-sm lg:border-r lg:border-gray-100/50">
+            {sidebar}
+          </div>
+        </div>
 
-                {/* Price Range Filter */}
-                <div>
-                  <h3 className="font-medium mb-4">Price Range</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={priceRange.min || ''}
-                        onChange={(e) => handlePriceRangeChange('min', e.target.value)}
-                        className="w-full"
-                      />
-                      <span className="text-slate-500">to</span>
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={priceRange.max || ''}
-                        onChange={(e) => handlePriceRangeChange('max', e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={handlePriceFilter}
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Categories Filter */}
-                <div>
-                  <h3 className="font-medium mb-4">Categories</h3>
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={(value) => setSelectedCategory(value)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.filter(cat => cat !== "all").map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Clear Filters Button */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleClearFilters}
-                >
-                  Clear Filters
+        {/* Products Grid/List and Controls */}
+        <div className="lg:col-start-2 px-4 lg:px-0">
+          {/* Mobile Filter Toggle Button */}
+          <div className="lg:hidden mb-6">
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full bg-white/80 backdrop-blur-sm border-gray-200">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
                 </Button>
-              </div>
-            </div>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-6 overflow-y-auto bg-white/95 backdrop-blur-sm">
+                <h2 className="text-lg font-medium mb-6">Filters</h2>
+                {sidebar}
+                <Button className="w-full mt-4" onClick={() => setIsFilterOpen(false)}>Close</Button>
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Products Grid/List */}
-          <div className="flex-1 mt-10">
-
-            {loading ? (
-              <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
-                {[...Array(6)].map((_, index) => (
-                  <ProductCardSkeleton key={index} viewMode={viewMode} />
-                ))}
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <h3 className="text-xl font-medium text-slate-900 mb-2">No products found</h3>
-                <p className="text-slate-600">Try adjusting your filters</p>
-              </div>
-            ) : (
-              <>
-                <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
-                  {filteredProducts.map((product) => (
-                    <Card
-                      key={product.id}
-                      className={`group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden ${viewMode === 'list' ? 'flex' : ''}`}
-                      onClick={() => handleNavigate(product.id)}
-                    >
-                      <div className={`relative ${viewMode === 'list' ? 'w-64' : 'aspect-square'} bg-slate-100 overflow-hidden`}>
-                        <img
-                          src={product.thumbnail}
-                          alt={product.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {product.discountPercentage > 0 && (
-                          <Badge className="absolute top-4 left-4 bg-red-500 text-white">
-                            {Math.round(product.discountPercentage)}% OFF
-                          </Badge>
-                        )}
-                      </div>
-                      <CardContent className={`p-6 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
-                          <span className="text-xs text-slate-600 uppercase tracking-wide">{product.category}</span>
-                        </div>
-                        <h3 className="font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xl font-semibold text-slate-900">${product.price}</span>
-                          {product.discountPercentage > 0 && (
-                            <span className="text-sm text-slate-500 line-through">
-                              ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Infinite Scroll Loading Indicator */}
-                {hasMore && !searchQuery.trim() && (
-                  <div ref={loadingRef} className="flex justify-center items-center py-8">
-                    {isLoadingMore && (
-                      <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8 w-full`}>
-                        {[...Array(3)].map((_, index) => (
-                          <ProductCardSkeleton key={`loading-${index}`} viewMode={viewMode} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {(!hasMore || searchQuery.trim()) && filteredProducts.length > 0 && (
-                  <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
-                    <p className="text-gray-500">
-                      {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+          {/* Products Grid/List Display */}
+          <div className="mt-6">
+            {productGrid}
           </div>
         </div>
       </div>
@@ -911,10 +710,10 @@ const Products = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 bg-gray-900 hover:bg-gray-800 text-white p-3 rounded-full shadow-lg transition-colors z-50 backdrop-blur-sm"
+          className="fixed bottom-6 right-6 bg-white/80 hover:bg-white text-gray-900 p-2.5 rounded-full shadow-lg transition-colors z-50 backdrop-blur-sm border border-gray-100"
           aria-label="Back to top"
         >
-          <ArrowUp className="h-5 w-5" />
+          <ArrowUp className="h-4 w-4" />
         </motion.button>
       )}
 

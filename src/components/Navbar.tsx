@@ -1,15 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Menu, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
+import { db } from "@/config/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 const Navbar = () => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [cartCount, setCartCount] = useState(0);
+
+    useEffect(() => {
+        let unsubscribe = () => { }; // Initialize with a no-op function
+
+        if (isAuthenticated && user?.uid) {
+            const userId = user.uid;
+            const cartCollectionRef = collection(db, "cart");
+            const userCartQuery = query(cartCollectionRef, where("userId", "==", userId));
+
+            unsubscribe = onSnapshot(userCartQuery, (snapshot) => {
+                let count = 0;
+                snapshot.forEach((doc) => {
+                    // Assuming each document in the cart collection has a 'quantity' field
+                    const item = doc.data();
+                    if (item && typeof item.quantity === 'number') {
+                        count += item.quantity;
+                    }
+                });
+                setCartCount(count);
+            }, (error) => {
+                console.error("Error fetching cart count:", error);
+                // Optionally reset cart count or show an error toast
+                setCartCount(0);
+            });
+        }
+
+        // Cleanup function to unsubscribe from the listener
+        return () => unsubscribe();
+    }, [isAuthenticated, user?.uid]); // Re-run effect if auth state or user changes
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white backdrop-blur-sm border-b">
@@ -45,9 +77,9 @@ const Navbar = () => {
                             onClick={() => navigate('/cart')}
                         >
                             <ShoppingCart className="h-5 w-5" />
-                            {isAuthenticated && (
+                            {isAuthenticated && cartCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-slate-900 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                                    0
+                                    {cartCount}
                                 </span>
                             )}
                         </Button>

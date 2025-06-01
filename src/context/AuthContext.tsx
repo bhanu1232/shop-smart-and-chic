@@ -7,7 +7,7 @@ interface User {
     uid: string; // Explicitly add uid for clarity and type checking
     name: string | null;
     email: string | null;
-    photoURL: string | null;
+    photoURL: string; // photoURL will always be a string with fallback
     displayName: string | null;
 }
 
@@ -28,12 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
                 // User is signed in
+
+                // Generate a fallback avatar URL if photoURL is missing
+                const fallbackPhotoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || firebaseUser.email || 'User')}&background=random&color=fff`;
+
                 const appUser: User = {
                     id: firebaseUser.uid,
                     uid: firebaseUser.uid, // Map uid here
                     name: firebaseUser.displayName,
                     email: firebaseUser.email,
-                    photoURL: firebaseUser.photoURL,
+                    photoURL: firebaseUser.photoURL || fallbackPhotoURL, // Use firebase photoURL or fallback
                     displayName: firebaseUser.displayName,
                 };
                 setUser(appUser);
