@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Search, Menu, Star, ArrowRight, User, Play, TruckIcon, Shield, RotateCcw } from "lucide-react";
+import { ArrowRight, Star, TruckIcon, Shield, RotateCcw, Award, Users, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Product, fetchProducts } from "@/api/products";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
@@ -15,7 +14,7 @@ import Navbar from "@/components/Navbar";
 const Index = () => {
   const navigate = useNavigate();
   useScrollToTop();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,134 +36,148 @@ const Index = () => {
   }, []);
 
   const categories = [
-    { name: "T-Shirts", icon: "👕", count: 56, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Hoodies", icon: "🧥", count: 29, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Jeans", icon: "👖", count: 15, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Sneakers", icon: "👟", count: 33, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Accessories", icon: "⌚", count: 38, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Jackets", icon: "🧥", count: 24, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Bags", icon: "👜", count: 27, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
-    { name: "Watches", icon: "⌚", count: 42, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" }
+    { name: "Women's Fashion", desc: "Elegant & Modern", count: 156, image: "/Home/s1.webp" },
+    { name: "Men's Collection", desc: "Classic & Contemporary", count: 89, image: "/Home/s2.webp" },
+    { name: "Accessories", desc: "Complete Your Look", count: 234, image: "/Home/s3.webp" },
+    { name: "Seasonal", desc: "Trending Now", count: 67, image: "/Home/s4.webp" }
   ];
 
   const features = [
-    { icon: TruckIcon, title: "Free Shipping", desc: "On orders over $100" },
-    { icon: Shield, title: "Secure Payment", desc: "100% secure checkout" },
-    { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy" }
+    { icon: TruckIcon, title: "Free Worldwide Shipping", desc: "On orders over $150" },
+    { icon: Shield, title: "Secure Payments", desc: "256-bit SSL encryption" },
+    { icon: RotateCcw, title: "Easy Returns", desc: "60-day return policy" },
+    { icon: Award, title: "Premium Quality", desc: "Curated collections" }
+  ];
+
+  const luxuryFeatures = [
+    { icon: Users, title: "50K+", desc: "Happy Customers Worldwide" },
+    { icon: Award, title: "Premium", desc: "Luxury Fashion House" },
+    { icon: Sparkles, title: "Exclusive", desc: "Limited Edition Collections" }
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-[90vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-8 text-center lg:text-left">
+      {/* Hero Section - Inspired by the uploaded image */}
+      <section className="relative bg-gray-50 min-h-screen flex items-center pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[80vh]">
+            {/* Left Side - Women's Cardigan */}
+            <div className="relative flex justify-center lg:justify-end">
+              <div className="relative">
+                <div className="w-80 h-96 bg-white rounded-3xl shadow-2xl overflow-hidden">
+                  <img 
+                    src="/Home/Hero.jpg" 
+                    alt="Women's Cardigan" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -top-4 -left-4 w-16 h-20 bg-amber-100 rounded-full opacity-60"></div>
+                <div className="absolute -bottom-6 -right-6 w-12 h-16 bg-gray-200 rounded-full opacity-60"></div>
+              </div>
+            </div>
+
+            {/* Center Content */}
+            <div className="text-center lg:text-left space-y-8">
               <div className="space-y-6">
-                <Badge className="bg-slate-900 text-white px-4 py-2 text-sm font-medium rounded-full hover:bg-slate-800">
-                  New Collection 2024
-                </Badge>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-slate-900 leading-tight">
-                  Style That
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-gray-900 leading-tight">
+                  The hidden gems in
                   <br />
-                  <span className="font-semibold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-                    Speaks
-                  </span>
+                  <span className="font-medium">fashion trends</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-slate-600 max-w-md mx-auto lg:mx-0 leading-relaxed">
-                  Discover premium clothing that defines your unique style
+                <p className="text-xl text-gray-600 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                  Step into the realm of unparalleled style with our unbeatable collection of today's trendsetter.
                 </p>
               </div>
+              
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button 
                   size="lg" 
-                  className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
-                  onClick={() => navigate('/products')}
+                  variant="outline"
+                  className="border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300"
+                  onClick={() => navigate('/products?gender=women')}
                 >
-                  Shop Collection
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  Shop Women
                 </Button>
                 <Button 
-                  variant="outline" 
                   size="lg" 
-                  className="border-2 border-slate-300 text-slate-900 hover:bg-slate-50 px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300"
+                  variant="outline"
+                  className="border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300"
+                  onClick={() => navigate('/products?gender=men')}
                 >
-                  <Play className="mr-2 h-5 w-5" />
-                  Watch Lookbook
+                  Shop Men
                 </Button>
               </div>
-              
-              {/* Features */}
+
+              {/* Luxury Features */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8">
-                {features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-3 justify-center lg:justify-start">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <feature.icon className="h-5 w-5 text-slate-700" />
+                {luxuryFeatures.map((feature, index) => (
+                  <div key={index} className="text-center lg:text-left">
+                    <div className="flex items-center justify-center lg:justify-start space-x-3 mb-2">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <feature.icon className="h-5 w-5 text-gray-700" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-lg">{feature.title}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm">{feature.title}</p>
-                      <p className="text-slate-600 text-xs">{feature.desc}</p>
-                    </div>
+                    <p className="text-gray-600 text-sm">{feature.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
-            
-            <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl overflow-hidden shadow-2xl">
-                <img 
-                  src="/Home/Hero.jpg" 
-                  alt="Featured Fashion" 
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
-                <div className="flex items-center space-x-4">
-                  <div className="flex -space-x-2">
-                    {[1,2,3].map((i) => (
-                      <div key={i} className="w-8 h-8 bg-slate-200 rounded-full border-2 border-white"></div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">10k+ Happy Customers</p>
-                    <div className="flex items-center space-x-1">
-                      {[1,2,3,4,5].map((i) => (
-                        <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      ))}
-                      <span className="text-xs text-slate-600 ml-1">4.9</span>
-                    </div>
-                  </div>
+
+            {/* Right Side - Men's T-Shirt */}
+            <div className="relative flex justify-center lg:justify-start lg:order-last">
+              <div className="relative">
+                <div className="w-80 h-96 bg-white rounded-3xl shadow-2xl overflow-hidden">
+                  <img 
+                    src="/Home/Hero2.jpg" 
+                    alt="Men's T-Shirt" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
+                <div className="absolute -top-6 -right-4 w-20 h-16 bg-amber-200 rounded-full opacity-60"></div>
+                <div className="absolute -bottom-4 -left-6 w-14 h-18 bg-gray-300 rounded-full opacity-60"></div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Shop by Category Section */}
+      {/* Premium Collections Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-4">Shop by Category</h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-              Explore our curated collection of premium clothing
+          <div className="text-center mb-16">
+            <Badge className="bg-gray-100 text-gray-800 px-4 py-2 text-sm font-medium rounded-full mb-4">
+              Premium Collections
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-light text-gray-900 mb-6">Curated for Excellence</h2>
+            <p className="text-gray-600 text-xl max-w-3xl mx-auto leading-relaxed">
+              Discover our handpicked selection of luxury fashion pieces that define modern elegance
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {categories.map((category, index) => (
               <Card
                 key={category.name}
-                className={`group cursor-pointer border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${category.color}`}
+                className="group cursor-pointer border-0 bg-white hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden rounded-3xl"
                 onClick={() => navigate('/products')}
               >
+                <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                </div>
                 <CardContent className="p-6 text-center">
-                  <div className="text-3xl mb-3">{category.icon}</div>
-                  <h3 className="font-medium text-slate-900 mb-1">{category.name}</h3>
-                  <p className="text-sm text-slate-600">{category.count} items</p>
+                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{category.name}</h3>
+                  <p className="text-gray-600 text-sm mb-3">{category.desc}</p>
+                  <p className="text-gray-500 text-xs">{category.count} pieces</p>
                 </CardContent>
               </Card>
             ))}
@@ -172,17 +185,17 @@ const Index = () => {
         </div>
       </section>
 
-      {/* New Arrivals Section */}
-      <section className="py-20 bg-slate-50">
+      {/* Featured Products Section */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-12">
+          <div className="flex justify-between items-center mb-16">
             <div>
-              <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-2">New Arrivals</h2>
-              <p className="text-slate-600">Fresh styles just landed</p>
+              <h2 className="text-3xl md:text-5xl font-light text-gray-900 mb-4">Latest Arrivals</h2>
+              <p className="text-gray-600 text-xl">Fresh styles, endless possibilities</p>
             </div>
             <Button 
               variant="ghost" 
-              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+              className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full px-6"
               onClick={() => navigate('/products')}
             >
               View All <ArrowRight className="ml-2 h-4 w-4" />
@@ -190,48 +203,48 @@ const Index = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[...Array(4)].map((_, index) => (
-                <Card key={index} className="overflow-hidden animate-pulse bg-white">
-                  <div className="aspect-square bg-slate-200" />
-                  <CardContent className="p-4">
-                    <div className="h-4 bg-slate-200 rounded mb-2" />
-                    <div className="h-4 bg-slate-200 rounded w-2/3 mb-2" />
-                    <div className="h-6 bg-slate-200 rounded w-1/3" />
+                <Card key={index} className="overflow-hidden animate-pulse bg-white rounded-3xl border-0">
+                  <div className="aspect-square bg-gray-200" />
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-gray-200 rounded mb-3" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3 mb-3" />
+                    <div className="h-6 bg-gray-200 rounded w-1/3" />
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {products.slice(0, 4).map((product) => (
                 <Card
                   key={product.id}
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-500 overflow-hidden border-0 bg-white rounded-3xl hover:-translate-y-1"
                   onClick={() => navigate(`/product/${product.id}`)}
                 >
-                  <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                  <div className="relative aspect-square bg-gray-100 overflow-hidden">
                     <img
                       src={product.thumbnail}
                       alt={product.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                     {product.discountPercentage > 0 && (
-                      <Badge className="absolute top-3 left-3 bg-slate-900 text-white px-2 py-1 text-xs">
+                      <Badge className="absolute top-4 left-4 bg-gray-900 text-white px-3 py-1 text-xs rounded-full">
                         {Math.round(product.discountPercentage)}% OFF
                       </Badge>
                     )}
                   </div>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
-                      <span className="text-xs text-slate-600 uppercase tracking-wide">{product.category}</span>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-xs text-gray-500 uppercase tracking-wider">{product.category}</span>
                     </div>
-                    <h3 className="font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
+                    <h3 className="font-medium text-gray-900 mb-3 line-clamp-2 leading-relaxed">{product.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-semibold text-slate-900">${product.price}</span>
+                      <span className="text-xl font-semibold text-gray-900">${product.price}</span>
                       {product.discountPercentage > 0 && (
-                        <span className="text-sm text-slate-500 line-through">
+                        <span className="text-sm text-gray-400 line-through">
                           ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
                         </span>
                       )}
@@ -244,22 +257,49 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Why Choose Us Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-3xl p-12 md:p-16 text-center text-white">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-light text-gray-900 mb-6">Why Choose Skena.co</h2>
+            <p className="text-gray-600 text-xl max-w-3xl mx-auto">
+              Experience luxury fashion with uncompromising quality and service
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="text-center group">
+                <div className="flex justify-center mb-6">
+                  <div className="p-4 bg-gray-100 rounded-2xl group-hover:bg-gray-900 group-hover:text-white transition-all duration-300">
+                    <feature.icon className="h-8 w-8" />
+                  </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 text-lg mb-3">{feature.title}</h3>
+                <p className="text-gray-600">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-20 bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-white">
             <h2 className="text-3xl md:text-5xl font-light mb-6">
-              Join the Style Revolution
+              Stay in Style
             </h2>
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Get exclusive access to new collections, special offers, and style inspiration
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+              Get exclusive access to new collections, styling tips, and special member-only offers
             </p>
             <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <Input
+              <input
+                type="email"
                 placeholder="Enter your email"
-                className="bg-white/10 border-white/20 text-white placeholder:text-slate-300 focus:border-white focus:ring-0"
+                className="flex-1 px-6 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-gray-400 focus:outline-none focus:border-white/40"
               />
-              <Button className="bg-white text-slate-900 hover:bg-slate-100 px-8 font-medium">
+              <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 rounded-full font-medium">
                 Subscribe
               </Button>
             </div>
@@ -268,45 +308,51 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-16">
+      <footer className="bg-white py-16 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-light mb-6">Skena.co</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Premium streetwear for the modern individual. Quality meets style in every piece.
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Skena.co</h3>
+              <p className="text-gray-600 leading-relaxed mb-6">
+                Redefining luxury fashion with curated collections that speak to your unique style and sophistication.
               </p>
+              <div className="flex space-x-1">
+                {[1,2,3,4,5].map((i) => (
+                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ))}
+                <span className="text-sm text-gray-600 ml-2">4.9 (12k+ reviews)</span>
+              </div>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Quick Links</h4>
-              <ul className="space-y-3 text-slate-400">
-                <li><button onClick={() => navigate('/about')} className="hover:text-white transition-colors">About Us</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Products</button></li>
-                <li><a href="#" className="hover:text-white transition-colors">Size Guide</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Returns</a></li>
+              <h4 className="font-semibold text-gray-900 mb-6">Quick Links</h4>
+              <ul className="space-y-4 text-gray-600">
+                <li><button onClick={() => navigate('/about')} className="hover:text-gray-900 transition-colors">About Us</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">All Products</button></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Size Guide</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Care Instructions</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Categories</h4>
-              <ul className="space-y-3 text-slate-400">
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">T-Shirts</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Hoodies</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Jeans</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Sneakers</button></li>
+              <h4 className="font-semibold text-gray-900 mb-6">Collections</h4>
+              <ul className="space-y-4 text-gray-600">
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Women's Fashion</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Men's Collection</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">Accessories</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-gray-900 transition-colors">New Arrivals</button></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-6">Support</h4>
-              <ul className="space-y-3 text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Shipping</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
+              <h4 className="font-semibold text-gray-900 mb-6">Customer Care</h4>
+              <ul className="space-y-4 text-gray-600">
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Contact Us</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Shipping Info</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Returns & Exchanges</a></li>
+                <li><a href="#" className="hover:text-gray-900 transition-colors">Privacy Policy</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-800 mt-12 pt-8 text-center text-slate-400">
-            <p>&copy; 2024 Skena.co. All rights reserved.</p>
+          <div className="border-t border-gray-100 mt-12 pt-8 text-center text-gray-500">
+            <p>&copy; 2024 Skena.co. All rights reserved. Crafted with passion for fashion.</p>
           </div>
         </div>
       </footer>
