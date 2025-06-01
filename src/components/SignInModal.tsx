@@ -30,11 +30,12 @@ const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
             const user = result.user;
             console.log("Firebase user:", user);
 
-            // Sign in the user with Firebase user information - include uid property
+            // Sign in the user with Firebase user information - include all required properties
             const userData = {
                 id: user.uid,
                 uid: user.uid,
                 name: user.displayName || '',
+                displayName: user.displayName || '',
                 email: user.email || '',
                 photoURL: user.photoURL || ''
             };

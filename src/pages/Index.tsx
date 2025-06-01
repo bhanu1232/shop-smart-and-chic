@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Search, Menu, Star, ArrowRight, User, Play } from "lucide-react";
+import { ShoppingCart, Search, Menu, Star, ArrowRight, User, Play, TruckIcon, Shield, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Product, fetchProducts } from "@/api/products";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
@@ -37,65 +37,107 @@ const Index = () => {
   }, []);
 
   const categories = [
-    { name: "Personal Care", icon: "🧴", count: 42, color: "bg-blue-50 border-blue-200" },
-    { name: "Accessories", icon: "⌚", count: 38, color: "bg-green-50 border-green-200" },
-    { name: "Coats", icon: "🧥", count: 29, color: "bg-purple-50 border-purple-200" },
-    { name: "Street Pants", icon: "👖", count: 15, color: "bg-pink-50 border-pink-200" },
-    { name: "Perfume", icon: "🌸", count: 24, color: "bg-yellow-50 border-yellow-200" },
-    { name: "T-Shirt", icon: "👕", count: 56, color: "bg-indigo-50 border-indigo-200" },
-    { name: "Sweaters", icon: "🧺", count: 33, color: "bg-teal-50 border-teal-200" },
-    { name: "Bags", icon: "👜", count: 27, color: "bg-orange-50 border-orange-200" }
+    { name: "T-Shirts", icon: "👕", count: 56, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Hoodies", icon: "🧥", count: 29, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Jeans", icon: "👖", count: 15, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Sneakers", icon: "👟", count: 33, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Accessories", icon: "⌚", count: 38, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Jackets", icon: "🧥", count: 24, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Bags", icon: "👜", count: 27, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" },
+    { name: "Watches", icon: "⌚", count: 42, color: "bg-slate-50 border-slate-200 hover:bg-slate-100" }
+  ];
+
+  const features = [
+    { icon: TruckIcon, title: "Free Shipping", desc: "On orders over $100" },
+    { icon: Shield, title: "Secure Payment", desc: "100% secure checkout" },
+    { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy" }
   ];
 
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      {/* Modern Hero Section */}
-      <section className="relative bg-gray-100 min-h-[85vh] flex items-center overflow-hidden">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-[90vh] flex items-center overflow-hidden">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="space-y-8 text-center lg:text-left">
               <div className="space-y-6">
-                <Badge className="bg-black text-white px-4 py-2 text-sm font-medium rounded-full">
-                  LIMITED TO STOCK
+                <Badge className="bg-slate-900 text-white px-4 py-2 text-sm font-medium rounded-full hover:bg-slate-800">
+                  New Collection 2024
                 </Badge>
-                <h1 className="text-5xl lg:text-7xl font-light text-gray-900 leading-tight">
-                  Simple
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-light text-slate-900 leading-tight">
+                  Style That
                   <br />
-                  <span className="font-normal">is More.</span>
+                  <span className="font-semibold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                    Speaks
+                  </span>
                 </h1>
-                <p className="text-xl text-gray-600 max-w-md leading-relaxed">
-                  DESIGNED TO
-                  <br />
-                  STAND OUT
+                <p className="text-xl md:text-2xl text-slate-600 max-w-md mx-auto lg:mx-0 leading-relaxed">
+                  Discover premium clothing that defines your unique style
                 </p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button 
                   size="lg" 
-                  className="bg-black hover:bg-gray-800 text-white px-8 py-6 rounded-none font-medium"
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
                   onClick={() => navigate('/products')}
                 >
                   Shop Collection
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
-                  className="border-black text-black hover:bg-black hover:text-white px-8 py-6 rounded-none font-medium"
+                  className="border-2 border-slate-300 text-slate-900 hover:bg-slate-50 px-8 py-6 text-lg font-medium rounded-lg transition-all duration-300"
                 >
-                  <Play className="mr-2 h-4 w-4" />
-                  Watch Film
+                  <Play className="mr-2 h-5 w-5" />
+                  Watch Lookbook
                 </Button>
               </div>
+              
+              {/* Features */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8">
+                {features.map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-3 justify-center lg:justify-start">
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <feature.icon className="h-5 w-5 text-slate-700" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900 text-sm">{feature.title}</p>
+                      <p className="text-slate-600 text-xs">{feature.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+            
             <div className="relative">
-              <div className="aspect-square bg-gray-200 rounded-2xl overflow-hidden">
+              <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl overflow-hidden shadow-2xl">
                 <img 
                   src="/Home/Hero.jpg" 
-                  alt="Featured Model" 
-                  className="w-full h-full object-cover"
+                  alt="Featured Fashion" 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
+                <div className="flex items-center space-x-4">
+                  <div className="flex -space-x-2">
+                    {[1,2,3].map((i) => (
+                      <div key={i} className="w-8 h-8 bg-slate-200 rounded-full border-2 border-white"></div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">10k+ Happy Customers</p>
+                    <div className="flex items-center space-x-1">
+                      {[1,2,3,4,5].map((i) => (
+                        <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      ))}
+                      <span className="text-xs text-slate-600 ml-1">4.9</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -104,15 +146,15 @@ const Index = () => {
 
       {/* Shop by Category Section */}
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl font-light text-gray-900">Shop by Category</h2>
-            <Button variant="ghost" className="text-teal-600 hover:text-teal-700">
-              See all
-            </Button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-4">Shop by Category</h2>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+              Explore our curated collection of premium clothing
+            </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {categories.map((category, index) => (
               <Card
                 key={category.name}
@@ -121,8 +163,8 @@ const Index = () => {
               >
                 <CardContent className="p-6 text-center">
                   <div className="text-3xl mb-3">{category.icon}</div>
-                  <h3 className="font-medium text-gray-900 mb-1">{category.name}</h3>
-                  <p className="text-sm text-gray-600">{category.count} items</p>
+                  <h3 className="font-medium text-slate-900 mb-1">{category.name}</h3>
+                  <p className="text-sm text-slate-600">{category.count} items</p>
                 </CardContent>
               </Card>
             ))}
@@ -131,24 +173,31 @@ const Index = () => {
       </section>
 
       {/* New Arrivals Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6 lg:px-12">
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl font-light text-gray-900">New Arrivals</h2>
-            <Button variant="ghost" className="text-teal-600 hover:text-teal-700">
-              See All
+            <div>
+              <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-2">New Arrivals</h2>
+              <p className="text-slate-600">Fresh styles just landed</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+              onClick={() => navigate('/products')}
+            >
+              View All <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, index) => (
-                <Card key={index} className="overflow-hidden animate-pulse">
-                  <div className="aspect-square bg-gray-200" />
+                <Card key={index} className="overflow-hidden animate-pulse bg-white">
+                  <div className="aspect-square bg-slate-200" />
                   <CardContent className="p-4">
-                    <div className="h-4 bg-gray-200 rounded mb-2" />
-                    <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-                    <div className="h-6 bg-gray-200 rounded w-1/3" />
+                    <div className="h-4 bg-slate-200 rounded mb-2" />
+                    <div className="h-4 bg-slate-200 rounded w-2/3 mb-2" />
+                    <div className="h-6 bg-slate-200 rounded w-1/3" />
                   </CardContent>
                 </Card>
               ))}
@@ -161,28 +210,28 @@ const Index = () => {
                   className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden border-0 bg-white"
                   onClick={() => navigate(`/product/${product.id}`)}
                 >
-                  <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                  <div className="relative aspect-square bg-slate-100 overflow-hidden">
                     <img
                       src={product.thumbnail}
                       alt={product.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {product.discountPercentage > 0 && (
-                      <Badge className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 text-xs">
+                      <Badge className="absolute top-3 left-3 bg-slate-900 text-white px-2 py-1 text-xs">
                         {Math.round(product.discountPercentage)}% OFF
                       </Badge>
                     )}
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-xs text-gray-600 uppercase tracking-wide">{product.category}</span>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                      <span className="text-xs text-slate-600 uppercase tracking-wide">{product.category}</span>
                     </div>
-                    <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">{product.title}</h3>
+                    <h3 className="font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-semibold text-gray-900">${product.price}</span>
+                      <span className="text-lg font-semibold text-slate-900">${product.price}</span>
                       {product.discountPercentage > 0 && (
-                        <span className="text-sm text-gray-500 line-through">
+                        <span className="text-sm text-slate-500 line-through">
                           ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
                         </span>
                       )}
@@ -195,128 +244,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Modern CTA Sections */}
+      {/* CTA Section */}
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left CTA */}
-            <Card className="bg-gradient-to-br from-teal-400 to-teal-600 text-white border-0 overflow-hidden">
-              <CardContent className="p-12 relative">
-                <div className="space-y-6">
-                  <div className="text-sm font-medium tracking-wide opacity-90">STELLA</div>
-                  <h3 className="text-3xl font-light leading-tight">
-                    Your Style,
-                    <br />
-                    Delivered.
-                    <br />
-                    <span className="font-normal">Exclusively Online.</span>
-                  </h3>
-                  <Button className="bg-white text-teal-600 hover:bg-gray-100 px-6 py-3 rounded-none font-medium">
-                    Shop Now
-                  </Button>
-                </div>
-                <div className="absolute bottom-4 right-4 text-xs opacity-75">
-                  www.stella.com
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Right CTAs */}
-            <div className="space-y-8">
-              <Card className="bg-gray-100 border-0 overflow-hidden">
-                <CardContent className="p-8 flex items-center gap-6">
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-600 mb-2">EXCLUSIVE DEALS</div>
-                    <h4 className="text-xl font-medium text-gray-900 mb-3">
-                      Discover our
-                      <br />
-                      accessories collection
-                    </h4>
-                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-none">
-                      Shop Now
-                    </Button>
-                  </div>
-                  <div className="w-24 h-24 bg-gray-200 rounded-lg"></div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-100 border-0 overflow-hidden">
-                <CardContent className="p-8 flex items-center gap-6">
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-600 mb-2">FIND YOUR PERFECT</div>
-                    <h4 className="text-xl font-medium text-gray-900 mb-3">
-                      Explore our shoes
-                      <br />
-                      collection
-                    </h4>
-                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-none">
-                      Shop Now
-                    </Button>
-                  </div>
-                  <div className="w-24 h-24 bg-gray-200 rounded-lg"></div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Deals Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6 lg:px-12">
-          <h2 className="text-3xl font-light text-gray-900 mb-12">Featured Deals</h2>
-          
-          <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 overflow-hidden">
-              <CardContent className="p-12">
-                <div className="space-y-6">
-                  <div className="text-sm font-medium tracking-wide opacity-90">STELLA</div>
-                  <h3 className="text-3xl font-light">
-                    Indulge in
-                    <br />
-                    <span className="font-normal">exclusive deals</span>
-                  </h3>
-                  <p className="text-lg opacity-90">Shop now and enjoy special discounts</p>
-                  <Button className="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-none font-medium">
-                    Shop Now
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-teal-500 to-green-500 text-white border-0 overflow-hidden">
-              <CardContent className="p-12">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-light">
-                    Welcome offer just
-                    <br />
-                    <span className="font-normal">for you</span>
-                  </h3>
-                  <p className="text-lg opacity-90">Get 20% off on your first order</p>
-                  <Button className="bg-white text-teal-600 hover:bg-gray-100 px-6 py-3 rounded-none font-medium">
-                    GET DISCOUNT
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6 lg:px-12 text-center">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <h2 className="text-3xl font-light text-gray-900">Stay Updated</h2>
-            <p className="text-lg text-gray-600">
-              Subscribe to our newsletter and be the first to know about new collections and exclusive offers.
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-3xl p-12 md:p-16 text-center text-white">
+            <h2 className="text-3xl md:text-5xl font-light mb-6">
+              Join the Style Revolution
+            </h2>
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              Get exclusive access to new collections, special offers, and style inspiration
             </p>
-            <div className="flex gap-4 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <Input
                 placeholder="Enter your email"
-                className="rounded-none border-gray-300 focus:border-teal-500"
+                className="bg-white/10 border-white/20 text-white placeholder:text-slate-300 focus:border-white focus:ring-0"
               />
-              <Button className="bg-teal-500 hover:bg-teal-600 text-white px-8 rounded-none">
+              <Button className="bg-white text-slate-900 hover:bg-slate-100 px-8 font-medium">
                 Subscribe
               </Button>
             </div>
@@ -325,18 +268,18 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="container mx-auto px-6 lg:px-12">
+      <footer className="bg-slate-900 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-xl font-light mb-6">Skena.co</h3>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-slate-400 leading-relaxed">
                 Premium streetwear for the modern individual. Quality meets style in every piece.
               </p>
             </div>
             <div>
               <h4 className="font-medium mb-6">Quick Links</h4>
-              <ul className="space-y-3 text-gray-400">
+              <ul className="space-y-3 text-slate-400">
                 <li><button onClick={() => navigate('/about')} className="hover:text-white transition-colors">About Us</button></li>
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Products</button></li>
                 <li><a href="#" className="hover:text-white transition-colors">Size Guide</a></li>
@@ -345,16 +288,16 @@ const Index = () => {
             </div>
             <div>
               <h4 className="font-medium mb-6">Categories</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Accessories</button></li>
+              <ul className="space-y-3 text-slate-400">
                 <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">T-Shirts</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Sweaters</button></li>
-                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Bags</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Hoodies</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Jeans</button></li>
+                <li><button onClick={() => navigate('/products')} className="hover:text-white transition-colors">Sneakers</button></li>
               </ul>
             </div>
             <div>
               <h4 className="font-medium mb-6">Support</h4>
-              <ul className="space-y-3 text-gray-400">
+              <ul className="space-y-3 text-slate-400">
                 <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Shipping</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
@@ -362,7 +305,7 @@ const Index = () => {
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+          <div className="border-t border-slate-800 mt-12 pt-8 text-center text-slate-400">
             <p>&copy; 2024 Skena.co. All rights reserved.</p>
           </div>
         </div>
