@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getCartItems, createOrder, clearCart } from "@/firebase/firestore";
@@ -11,6 +10,7 @@ import { CartItem, Order } from "@/firebase/firestore";
 import { toast } from "sonner";
 import { Loader2, Check, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import OrderSuccessModal from "@/components/OrderSuccessModal";
 
 interface RazorpayOptions {
   key: string;
@@ -59,6 +59,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState("");
   const [shippingAddress, setShippingAddress] = useState({
     street: "",
     city: "",
@@ -115,40 +117,15 @@ const Checkout = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isAuthenticated || !user) return;
-
-    setProcessing(true);
-    try {
-      // Create order
-      const orderData: Omit<Order, 'id'> = {
-        userId: user.uid,
-        items: cartItems.map(item => ({
-          ...item,
-          orderDate: new Date().toISOString(),
-          status: 'placed'
-        })),
-        total: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        shippingAddress,
-        paymentMethod: 'razorpay',
-        orderDate: new Date().toISOString(),
-        status: 'placed'
-      };
-
-      const orderId = await createOrder(user.uid, orderData);
-
-      // Clear cart
-      await clearCart(user.uid);
-
-      toast.success("Order placed successfully!");
-      navigate(`/order-confirmation/${orderId}`);
-    } catch (error) {
-      console.error("Error processing order:", error);
-      toast.error("Failed to process order");
-    } finally {
-      setProcessing(false);
+  const validateForm = () => {
+    const requiredFields = ['street', 'city', 'state', 'zipCode', 'country', 'phone'];
+    for (const field of requiredFields) {
+      if (!shippingAddress[field as keyof typeof shippingAddress].trim()) {
+        toast.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field`);
+        return false;
+      }
     }
+    return true;
   };
 
   const handlePaymentSuccess = async (response: RazorpayResponse) => {
@@ -175,8 +152,8 @@ const Checkout = () => {
       const orderId = await createOrder(user.uid, orderData);
       await clearCart(user.uid);
 
-      toast.success("Payment successful! Order placed.");
-      navigate('/'); // Navigate to home page after successful payment
+      setCompletedOrderId(orderId);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error processing order:", error);
       toast.error("Failed to process order");
@@ -186,11 +163,10 @@ const Checkout = () => {
   };
 
   const handlePayment = async () => {
-    if (!user) return;
+    if (!user || !validateForm()) return;
     setProcessing(true);
 
     try {
-      // Calculate total amount in paise (multiply by 100)
       const amountInPaise = Math.round(cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100);
 
       const options: RazorpayOptions = {
@@ -223,7 +199,6 @@ const Checkout = () => {
     } catch (error) {
       console.error("Payment error:", error);
       toast.error("Failed to initialize payment. Please try again.");
-    } finally {
       setProcessing(false);
     }
   };
@@ -234,8 +209,9 @@ const Checkout = () => {
   );
 
   const nextStep = () => {
-    if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep === 1 && validateForm()) {
+      setCurrentStep(2);
+      setTimeout(handlePayment, 100);
     }
   };
 
@@ -312,7 +288,7 @@ const Checkout = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8">
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col lg:flex-row gap-8">
           {/* Main Content */}
           <div className="flex-1 space-y-6">
             {/* Step 1: Information */}
@@ -324,70 +300,74 @@ const Checkout = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="street">Street Address</Label>
+                      <Label htmlFor="street">Street Address *</Label>
                       <Input
                         id="street"
                         name="street"
                         value={shippingAddress.street}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your street address"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="city">City *</Label>
                       <Input
                         id="city"
                         name="city"
                         value={shippingAddress.city}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your city"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="state">State *</Label>
                       <Input
                         id="state"
                         name="state"
                         value={shippingAddress.state}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your state"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Label htmlFor="zipCode">ZIP Code *</Label>
                       <Input
                         id="zipCode"
                         name="zipCode"
                         value={shippingAddress.zipCode}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your ZIP code"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
+                      <Label htmlFor="country">Country *</Label>
                       <Input
                         id="country"
                         name="country"
                         value={shippingAddress.country}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your country"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone">Phone *</Label>
                       <Input
                         id="phone"
                         name="phone"
+                        type="tel"
                         value={shippingAddress.phone}
                         onChange={handleInputChange}
                         required
+                        placeholder="Enter your phone number"
                       />
                     </div>
                   </div>
-                  <Button onClick={() => {
-                    nextStep();
-                    setTimeout(handlePayment, 100);
-                  }} className="w-full mt-4">
+                  <Button onClick={nextStep} className="w-full mt-4">
                     Continue to Payment
                   </Button>
                 </CardContent>
@@ -465,6 +445,19 @@ const Checkout = () => {
             </Card>
           </div>
         </form>
+
+        {/* Success Modal */}
+        <OrderSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            navigate('/');
+          }}
+          orderId={completedOrderId}
+          orderItems={cartItems}
+          total={subtotal}
+          shippingAddress={shippingAddress}
+        />
       </div>
     </div>
   );
