@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Heart, Share2, Star, ChevronLeft, Minus, Plus, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
+import { ShoppingCart, Heart, Share2, Star, ChevronLeft, Minus, Plus, Truck, Shield, RotateCcw } from "lucide-react";
 import { Product, fetchProductById } from "@/api/products";
 import { useAuth } from "@/context/AuthContext";
 import { addWishlistItem, removeWishlistItem, isItemInWishlist, addToCart, isItemInCart } from "@/firebase/firestore";
@@ -203,28 +203,28 @@ const ProductDetail = () => {
   const discountPercentage = Math.round(product.discountPercentage);
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6">
         <Button
           variant="ghost"
-          className="mb-8"
+          className="mb-6"
           onClick={() => navigate('/products')}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back to Products
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative group">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Product Images - Compact */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
               <img
                 src={product.images[selectedImage]}
                 alt={product.title}
                 className="w-full h-full object-cover"
               />
               {product.discountPercentage > 0 && (
-                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                <Badge className="absolute top-3 left-3 bg-red-500 text-white text-xs">
                   {discountPercentage}% OFF
                 </Badge>
               )}
@@ -234,50 +234,47 @@ const ProductDetail = () => {
               {product.images.map((image, index) => (
                 <div
                   key={index}
-                  className={`aspect-square bg-gray-100 rounded-lg cursor-pointer ${selectedImage === index ? 'ring-2 ring-gray-900' : ''
-                    }`}
+                  className={`aspect-square bg-gray-100 rounded cursor-pointer ${selectedImage === index ? 'ring-2 ring-gray-900' : ''}`}
                   onClick={() => setSelectedImage(index)}
                 >
                   <img
                     src={image}
-                    alt={`${product.title} - Image ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
+                    alt={`${product.title} - ${index + 1}`}
+                    className="w-full h-full object-cover rounded"
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-6">
+          {/* Product Info - Compact */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Header Section */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-4 w-4 ${i < Math.floor(product.rating)
-                        ? "text-yellow-400 fill-current"
-                        : "text-gray-300"
-                        }`}
+                      className={`h-4 w-4 ${i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"}`}
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">({product.reviews.length} reviews)</span>
+                <span className="text-sm text-gray-600">({product.reviews.length})</span>
               </div>
 
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-3">{product.title}</h1>
 
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl font-bold text-gray-900">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl font-bold text-gray-900">
                   ${product.price.toFixed(2)}
                 </span>
                 {product.discountPercentage > 0 && (
                   <>
-                    <span className="text-xl text-gray-500 line-through">
+                    <span className="text-lg text-gray-500 line-through">
                       ${originalPrice.toFixed(2)}
                     </span>
-                    <Badge variant="destructive" className="bg-red-100 text-red-700">
+                    <Badge variant="destructive" className="bg-red-100 text-red-700 text-xs">
                       Save ${discountAmount.toFixed(2)}
                     </Badge>
                   </>
@@ -285,168 +282,153 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            <p className="text-gray-700 leading-relaxed">{product.description}</p>
+            <p className="text-gray-700 text-sm leading-relaxed">{product.description}</p>
 
-            {/* Stock Status */}
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-sm text-gray-600">
-                {product.stock > 0 ? `${product.stock} units in stock` : 'Out of stock'}
-              </span>
-            </div>
+            {/* Stock & Actions Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-sm text-gray-600">
+                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                </span>
+              </div>
 
-            {/* Quantity Selector */}
-            <div className="flex items-center gap-4">
-              <span className="font-semibold text-gray-900">Quantity:</span>
-              <div className="flex items-center border rounded-lg">
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-3">
+                <span className="font-medium text-gray-900 text-sm">Qty:</span>
+                <div className="flex items-center border rounded">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-8 text-center text-sm">{quantity}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setQuantity(quantity + 1)}
+                    disabled={quantity >= product.stock}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
+                  className={`flex-1 text-sm ${isInCart ? "bg-gray-900 hover:bg-gray-800" : ""}`}
+                  disabled={product.stock === 0 || isCartLoading}
+                  onClick={handleCartClick}
                 >
-                  <Minus className="h-4 w-4" />
+                  {isCartLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  ) : (
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                  )}
+                  {isInCart ? "Go to Cart" : `Add - $${(product.price * quantity).toFixed(2)}`}
                 </Button>
-                <span className="w-12 text-center">{quantity}</span>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  onClick={() => setQuantity(quantity + 1)}
-                  disabled={quantity >= product.stock}
+                  className={`h-9 w-9 ${isInWishlist ? "text-red-500" : ""}`}
+                  onClick={handleWishlistToggle}
+                  disabled={isWishlistLoading}
                 >
-                  <Plus className="h-4 w-4" />
+                  {isWishlistLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                  ) : (
+                    <Heart className={`h-4 w-4 ${isInWishlist ? "fill-current" : ""}`} />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={handleShare}
+                  disabled={isSharing}
+                >
+                  {isSharing ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                  ) : (
+                    <Share2 className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <Button
-                className={`flex-1 ${isInCart ? "bg-gray-900 hover:bg-gray-800" : ""}`}
-                disabled={product.stock === 0 || isCartLoading}
-                onClick={handleCartClick}
-              >
-                {isCartLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                ) : (
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                )}
-                {isInCart ? "Go to Cart" : `Add to Cart - $${(product.price * quantity).toFixed(2)}`}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleWishlistToggle}
-                className={isInWishlist ? "text-red-500" : ""}
-                disabled={isWishlistLoading}
-              >
-                {isWishlistLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
-                ) : (
-                  <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                disabled={isSharing}
-              >
-                {isSharing ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
-                ) : (
-                  <Share2 className="h-5 w-5" />
-                )}
-              </Button>
+            {/* Compact Info Cards */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <Card className="p-3">
+                <div className="flex flex-col items-center text-center">
+                  <Truck className="h-5 w-5 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium">Free Shipping</span>
+                  <span className="text-xs text-gray-500">Orders $50+</span>
+                </div>
+              </Card>
+              <Card className="p-3">
+                <div className="flex flex-col items-center text-center">
+                  <Shield className="h-5 w-5 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium">1 Year Warranty</span>
+                  <span className="text-xs text-gray-500">Full coverage</span>
+                </div>
+              </Card>
+              <Card className="p-3">
+                <div className="flex flex-col items-center text-center">
+                  <RotateCcw className="h-5 w-5 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium">30-Day Returns</span>
+                  <span className="text-xs text-gray-500">Easy process</span>
+                </div>
+              </Card>
             </div>
 
-            {/* Product Details Tabs */}
-            <Tabs defaultValue="details" className="mt-8">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Product Details</TabsTrigger>
-                <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews ({product.reviews.length})</TabsTrigger>
+            {/* Compact Tabs */}
+            <Tabs defaultValue="details" className="mt-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details" className="text-sm">Details</TabsTrigger>
+                <TabsTrigger value="reviews" className="text-sm">Reviews ({product.reviews.length})</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="mt-6">
-                <div className="space-y-6">
+              <TabsContent value="details" className="mt-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <h3 className="font-semibold text-lg mb-4">Description</h3>
-                    <p className="text-gray-700">{product.description}</p>
+                    <span className="text-gray-600">Brand</span>
+                    <p className="font-medium">{product.brand}</p>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-4">Specifications</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-gray-600">Brand</span>
-                        <p className="font-medium">{product.brand}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Category</span>
-                        <p className="font-medium">{product.category}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Stock</span>
-                        <p className="font-medium">{product.stock} units</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Rating</span>
-                        <p className="font-medium">{product.rating}/5</p>
-                      </div>
-                    </div>
+                    <span className="text-gray-600">Category</span>
+                    <p className="font-medium">{product.category}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Stock</span>
+                    <p className="font-medium">{product.stock} units</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Rating</span>
+                    <p className="font-medium">{product.rating}/5</p>
                   </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="shipping" className="mt-6">
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <Truck className="h-6 w-6 text-gray-400 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Shipping Information</h3>
-                      <p className="text-gray-700">
-                        Free shipping on orders over $50. Standard delivery takes 3-5 business days.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <Shield className="h-6 w-6 text-gray-400 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Warranty</h3>
-                      <p className="text-gray-700">
-                        1-year manufacturer warranty on all products.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <RotateCcw className="h-6 w-6 text-gray-400 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Return Policy</h3>
-                      <p className="text-gray-700">
-                        30-day return policy. Items must be unused and in original packaging.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="reviews" className="mt-6">
-                <div className="space-y-6">
+              <TabsContent value="reviews" className="mt-4">
+                <div className="space-y-4 max-h-64 overflow-y-auto">
                   {product.reviews.map((review, index) => (
-                    <div key={index} className="border-b pb-6 last:border-0">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div key={index} className="border-b pb-3 last:border-0">
+                      <div className="flex items-center gap-2 mb-1">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-4 w-4 ${i < review.rating
-                              ? "text-yellow-400 fill-current"
-                              : "text-gray-300"
-                              }`}
+                            className={`h-3 w-3 ${i < review.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
                           />
                         ))}
                       </div>
-                      <p className="text-gray-700 mb-2">{review.comment}</p>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
+                      <p className="text-gray-700 text-sm mb-1">{review.comment}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>{review.reviewerName}</span>
                         <span>{review.date}</span>
                       </div>

@@ -185,7 +185,8 @@ const Products = () => {
     try {
       console.log("Loading more products, skip:", skip);
       setIsLoadingMore(true);
-      const newProducts = await fetchProducts(ITEMS_PER_PAGE, skip);
+      // Use a larger limit to ensure we get enough products after filtering
+      const newProducts = await fetchProducts(ITEMS_PER_PAGE + 3, skip);
       console.log("Loaded products:", newProducts.length);
 
       if (newProducts.length === 0) {
@@ -212,8 +213,8 @@ const Products = () => {
         return updatedProducts;
       });
       
-      setSkip(prevSkip => prevSkip + ITEMS_PER_PAGE);
-      setHasMore(newProducts.length === ITEMS_PER_PAGE);
+      setSkip(prevSkip => prevSkip + newProducts.length);
+      setHasMore(newProducts.length >= ITEMS_PER_PAGE);
 
       // Update wishlist status for new products in the background
       if (isAuthenticated && user) {
