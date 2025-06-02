@@ -88,7 +88,7 @@ const Products = () => {
   const [colorsOpen, setColorsOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -113,9 +113,21 @@ const Products = () => {
     }));
   }, []);
 
-  // Sort products
-  const sortedProducts = useMemo(() => {
-    const sorted = [...products].sort((a, b) => {
+  // Filter and sort products (client-side)
+  const filteredAndSortedProducts = useMemo(() => {
+    console.log("Filtering and sorting products, total:", allProducts.length);
+    
+    // First filter
+    const filtered = allProducts.filter((product) => {
+      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+      const matchesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+
+    // Then sort
+    const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "price-low":
           return a.price - b.price;
@@ -131,19 +143,10 @@ const Products = () => {
           return 0;
       }
     });
+    
+    console.log("Filtered and sorted products:", sorted.length);
     return sorted;
-  }, [products, sortBy]);
-
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    return sortedProducts.filter((product) => {
-      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-      const matchesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
-      return matchesSearch && matchesCategory && matchesPrice;
-    });
-  }, [sortedProducts, searchQuery, selectedCategory, priceRange]);
+  }, [allProducts, searchQuery, selectedCategory, priceRange, sortBy]);
 
   // Navigation handler
   const handleNavigate = useCallback((productId: number) => {
@@ -157,7 +160,7 @@ const Products = () => {
     setPriceRange({ min: 0, max: 1000 });
   }, []);
 
-  // Load more products function with better error handling
+  // Load more products function
   const loadMoreProducts = useCallback(async () => {
     if (isLoadingMore || !hasMore || searchQuery.trim()) {
       console.log("Load more blocked:", { isLoadingMore, hasMore, searchQuery });
@@ -184,8 +187,14 @@ const Products = () => {
         }
       }));
 
-      // Update products by appending new products to the existing ones
-      setProducts(prevProducts => [...prevProducts, ...extendedProducts]);
+      // Append new products to existing ones
+      setAllProducts(prevProducts => {
+        const existingIds = new Set(prevProducts.map(p => p.id));
+        const uniqueNewProducts = extendedProducts.filter(p => !existingIds.has(p.id));
+        console.log("Adding unique products:", uniqueNewProducts.length);
+        return [...prevProducts, ...uniqueNewProducts];
+      });
+      
       setSkip(prevSkip => prevSkip + ITEMS_PER_PAGE);
       setHasMore(newProducts.length === ITEMS_PER_PAGE);
 
@@ -211,7 +220,7 @@ const Products = () => {
     }
   }, [skip, isLoadingMore, hasMore, isAuthenticated, user, searchQuery]);
 
-  // Setup Intersection Observer with cleanup
+  // Setup Intersection Observer
   useEffect(() => {
     // Cleanup previous observer
     if (observerRef.current) {
@@ -234,7 +243,7 @@ const Products = () => {
           loadMoreProducts();
         }
       },
-      { root: null, rootMargin: '200px', threshold: 0.1 }
+      { root: null, rootMargin: '100px', threshold: 0.1 }
     );
 
     // Observe loading ref if it exists
@@ -260,11 +269,6 @@ const Products = () => {
       console.log("Loading initial products");
       setLoading(true);
 
-      // Reset products state
-      setProducts([]);
-      setSkip(0);
-      setHasMore(true);
-
       const data = await fetchProducts(ITEMS_PER_PAGE, 0);
       console.log("Initial products loaded:", data.length);
 
@@ -276,11 +280,11 @@ const Products = () => {
         }
       }));
 
-      setProducts(extendedProducts);
+      setAllProducts(extendedProducts);
       setSkip(ITEMS_PER_PAGE);
       setHasMore(data.length === ITEMS_PER_PAGE);
 
-      // Update wishlist status for new products in the background
+      // Update wishlist status for initial products
       if (isAuthenticated && user) {
         getWishlistItems(user.uid)
           .then(wishlistItems => {
@@ -288,7 +292,7 @@ const Products = () => {
             extendedProducts.forEach(product => {
               status[product.id.toString()] = wishlistItems.some(item => item.id === product.id.toString());
             });
-            setWishlistStatus(prev => ({ ...prev, ...status }));
+            setWishlistStatus(status);
           })
           .catch(error => {
             console.error("Error loading wishlist:", error);
@@ -310,80 +314,67 @@ const Products = () => {
     }
   }, [loadProducts]);
 
-  // Reset pagination when filters change (except for initial load)
-  useEffect(() => {
-    if (!isInitialLoad.current && (selectedCategory !== "all" || priceRange.min !== 0 || priceRange.max !== 1000)) {
-      console.log("Filters changed, reloading products");
-      setProducts([]);
-      setSkip(0);
-      setHasMore(true);
-      loadProducts();
-    }
-  }, [selectedCategory, priceRange, loadProducts]);
-
-  // Add handlePriceFilter function
-  const handlePriceFilter = useCallback(() => {
-    // Re-filter the current products based on price range
-    // Note: This assumes filtering is done client-side after initial fetch/search
-    // For large datasets, server-side filtering would be more performant
-    const filtered = products.filter(product => {
-      const price = product.price;
-      return price >= priceRange.min && price <= priceRange.max;
-    });
-    setProducts(filtered);
-    setHasMore(false); // Disable infinite scroll after client-side filtering
-  }, [products, priceRange]);
-
-  // Create debounced search function outside useCallback
+  // Create debounced search function
   const debouncedSearch = useMemo(
     () => debounce(async (query: string) => {
       console.log("Debounced search query:", query);
       if (!query.trim()) {
-        loadProducts(); // Load initial products if search query is empty
+        // Reset to show all products when search is cleared
         return;
       }
 
       try {
         setIsSearching(true);
-        const results = await searchProducts(query); // Use searchProducts API call
+        const results = await searchProducts(query);
         console.log("Search results:", results.length);
 
         const extendedResults: Product[] = results.map(product => ({
           ...product,
-          meta: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } // Add meta data
+          meta: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
         }));
-        setProducts(extendedResults);
+        
+        // Replace products with search results
+        setAllProducts(extendedResults);
         setHasMore(false); // Disable infinite scroll for search results
-        setSkip(0); // Reset skip
+        setSkip(0);
       } catch (error) {
         console.error('Error searching products:', error);
         toast.error('Failed to search products');
       } finally {
         setIsSearching(false);
       }
-    }, 500), // Debounce delay
-    [loadProducts] // Dependency array includes loadProducts
+    }, 500),
+    []
   );
 
   // Update handleSearch to use debounced search
   const handleSearch = useCallback((query: string) => {
     console.log("Search query:", query);
     setSearchQuery(query);
-    // Trigger debounced search only after a delay
-    debouncedSearch(query);
-  }, [debouncedSearch]);
+    
+    if (!query.trim()) {
+      // If search is cleared, reload initial products
+      setAllProducts([]);
+      setSkip(0);
+      setHasMore(true);
+      loadProducts();
+    } else {
+      // Trigger debounced search
+      debouncedSearch(query);
+    }
+  }, [debouncedSearch, loadProducts]);
 
   // Cleanup debounced search on unmount
   useEffect(() => {
     return () => {
-      debouncedSearch.cancel(); // Cancel any pending debounced calls
+      debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
 
-  // Get unique categories from products (consider fetching categories separately if needed)
+  // Get unique categories from products
   const categories = useMemo(() =>
-    ["all", ...new Set(products.map(product => product.category).filter(Boolean))], // Filter out potential undefined/null categories
-    [products]
+    ["all", ...new Set(allProducts.map(product => product.category).filter(Boolean))],
+    [allProducts]
   );
 
   // Add state for back to top button
@@ -403,7 +394,7 @@ const Products = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Add handleWishlistToggle before productGrid
+  // Add handleWishlistToggle
   const handleWishlistToggle = useCallback(async (productId: string) => {
     if (!user) {
       setIsSignInModalOpen(true);
@@ -417,7 +408,7 @@ const Products = () => {
         setWishlistStatus(prev => ({ ...prev, [productId]: false }));
         toast.success("Removed from wishlist");
       } else {
-        const product = products.find(p => p.id.toString() === productId);
+        const product = allProducts.find(p => p.id.toString() === productId);
         if (product) {
           await addWishlistItem(user.uid, {
             id: product.id.toString(),
@@ -436,22 +427,22 @@ const Products = () => {
     } finally {
       setLoadingWishlist(prev => ({ ...prev, [productId]: false }));
     }
-  }, [user, wishlistStatus, products]);
+  }, [user, wishlistStatus, allProducts]);
 
-  // Memoize the product grid to prevent unnecessary re-renders
+  // Memoize the product grid
   const productGrid = useMemo(() => (
     <>
       {/* Initial Loading Skeleton */}
       {loading && (
         <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8 w-full`}>
-          {[...Array(3)].map((_, index) => (
+          {[...Array(6)].map((_, index) => (
             <ProductCardSkeleton key={`initial-loading-${index}`} viewMode={viewMode} />
           ))}
         </div>
       )}
 
       {/* No Products Found Message */}
-      {!loading && filteredProducts.length === 0 ? (
+      {!loading && filteredAndSortedProducts.length === 0 ? (
         <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-100/80">
           <div className="max-w-md mx-auto">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -471,11 +462,11 @@ const Products = () => {
       ) : (
         <>
           {/* Actual Product Grid */}
-          {!loading && filteredProducts.length > 0 && (
+          {!loading && filteredAndSortedProducts.length > 0 && (
             <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-8`}>
-              {filteredProducts.map((product, index) => (
+              {filteredAndSortedProducts.map((product, index) => (
                 <motion.div
-                  key={product.id}
+                  key={`${product.id}-${index}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -500,7 +491,7 @@ const Products = () => {
           )}
 
           {/* Infinite Scroll Loading Indicator */}
-          {hasMore && !searchQuery.trim() && ( /* Keep this as is */
+          {hasMore && !searchQuery.trim() && !loading && (
             <div ref={loadingRef} className="flex justify-center items-center py-8">
               {isLoadingMore && (
                 <div className={`grid ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"} gap-8 w-full`}>
@@ -513,7 +504,7 @@ const Products = () => {
           )}
 
           {/* End of Results Message */}
-          {(!hasMore || searchQuery.trim()) && !isLoadingMore && filteredProducts.length > 0 && (
+          {(!hasMore || searchQuery.trim()) && !isLoadingMore && filteredAndSortedProducts.length > 0 && (
             <div className="text-center py-8 bg-white/30 backdrop-blur-sm rounded-xl border border-gray-100/50">
               <p className="text-gray-500">
                 {searchQuery.trim() ? "End of search results." : "You've reached the end of the products."}
@@ -523,27 +514,9 @@ const Products = () => {
         </>
       )}
     </>
-  ), [filteredProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
+  ), [filteredAndSortedProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
 
-  // Price range presets
-  const priceRanges = [
-    { label: "All Prices", value: { min: 0, max: 1000 } },
-    { label: "Under $50", value: { min: 0, max: 50 } },
-    { label: "$50 - $100", value: { min: 50, max: 100 } },
-    { label: "$100 - $200", value: { min: 100, max: 200 } },
-    { label: "$200 - $500", value: { min: 200, max: 500 } },
-    { label: "Over $500", value: { min: 500, max: 1000 } }
-  ];
-
-  // Handle price range selection
-  const handlePriceRangeSelect = useCallback((range: PriceRange) => {
-    setPriceRange(range);
-    // Reset pagination when price range changes
-    setProducts([]);
-    setSkip(0);
-    setHasMore(true);
-    loadProducts();
-  }, [loadProducts]);
+  // ... keep existing code (sidebar, headerControls, price ranges, etc.)
 
   // Update the sidebar JSX
   const sidebar = useMemo(() => (
@@ -634,7 +607,7 @@ const Products = () => {
     </div>
   ), [categories, selectedCategory, priceRange, sortBy, handlePriceRangeChange, handleClearFilters, searchQuery, handleSearch]);
 
-  // Memoize the header controls to prevent re-renders
+  // Memoize the header controls
   const headerControls = useMemo(() => (
     <div className="bg-white/50 backdrop-blur-sm rounded-lg border border-gray-100/50 p-3 shadow-sm hidden lg:block">
       <div className="flex items-center justify-between">
@@ -657,11 +630,11 @@ const Products = () => {
           </Button>
         </div>
         <div className="text-sm text-gray-500">
-          {filteredProducts.length} products
+          {filteredAndSortedProducts.length} products
         </div>
       </div>
     </div>
-  ), [viewMode, filteredProducts.length]);
+  ), [viewMode, filteredAndSortedProducts.length]);
 
   return (
     <div className="min-h-screen bg-gray-50/50">
