@@ -104,6 +104,9 @@ const Products = () => {
   const loadingRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
 
+  // Add ref to track if filters have changed
+  const lastFiltersRef = useRef({ selectedCategory, sortBy, priceRange, searchQuery });
+
   // Price range handler
   const handlePriceRangeChange = useCallback((field: 'min' | 'max', value: string) => {
     const numValue = value === '' ? 0 : Number(value);
@@ -113,9 +116,13 @@ const Products = () => {
     }));
   }, []);
 
-  // Filter and sort products (client-side)
+  // Filter and sort products (client-side) - only sort when filters change, not during infinite scroll
   const filteredAndSortedProducts = useMemo(() => {
     console.log("Filtering and sorting products, total:", allProducts.length);
+    
+    // Check if filters have changed
+    const currentFilters = { selectedCategory, sortBy, priceRange, searchQuery };
+    const filtersChanged = JSON.stringify(lastFiltersRef.current) !== JSON.stringify(currentFilters);
     
     // First filter
     const filtered = allProducts.filter((product) => {
@@ -126,26 +133,32 @@ const Products = () => {
       return matchesSearch && matchesCategory && matchesPrice;
     });
 
-    // Then sort
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        case "rating":
-          return b.rating - a.rating;
-        case "newest":
-          return new Date(b.meta?.createdAt || "").getTime() - new Date(a.meta?.createdAt || "").getTime();
-        case "popular":
-          return b.stock - a.stock;
-        default:
-          return 0;
-      }
-    });
+    // Only sort if filters have changed or if we're not in infinite scroll mode
+    let result = filtered;
+    if (filtersChanged || searchQuery.trim()) {
+      result = [...filtered].sort((a, b) => {
+        switch (sortBy) {
+          case "price-low":
+            return a.price - b.price;
+          case "price-high":
+            return b.price - a.price;
+          case "rating":
+            return b.rating - a.rating;
+          case "newest":
+            return new Date(b.meta?.createdAt || "").getTime() - new Date(a.meta?.createdAt || "").getTime();
+          case "popular":
+            return b.stock - a.stock;
+          default:
+            return 0;
+        }
+      });
+      
+      // Update the ref after sorting
+      lastFiltersRef.current = currentFilters;
+    }
     
-    console.log("Filtered and sorted products:", sorted.length);
-    return sorted;
+    console.log("Filtered and sorted products:", result.length);
+    return result;
   }, [allProducts, searchQuery, selectedCategory, priceRange, sortBy]);
 
   // Navigation handler
@@ -158,7 +171,9 @@ const Products = () => {
     setSearchQuery("");
     setSelectedCategory("all");
     setPriceRange({ min: 0, max: 1000 });
-  }, []);
+    // Reset the filters ref to trigger re-sorting
+    lastFiltersRef.current = { selectedCategory: "all", sortBy, priceRange: { min: 0, max: 1000 }, searchQuery: "" };
+  }, [sortBy]);
 
   // Load more products function
   const loadMoreProducts = useCallback(async () => {
@@ -187,12 +202,14 @@ const Products = () => {
         }
       }));
 
-      // Append new products to existing ones
+      // Append new products to existing ones (maintaining order)
       setAllProducts(prevProducts => {
         const existingIds = new Set(prevProducts.map(p => p.id));
         const uniqueNewProducts = extendedProducts.filter(p => !existingIds.has(p.id));
         console.log("Adding unique products:", uniqueNewProducts.length);
-        return [...prevProducts, ...uniqueNewProducts];
+        const updatedProducts = [...prevProducts, ...uniqueNewProducts];
+        console.log("Total products after append:", updatedProducts.length);
+        return updatedProducts;
       });
       
       setSkip(prevSkip => prevSkip + ITEMS_PER_PAGE);
@@ -319,7 +336,6 @@ const Products = () => {
     () => debounce(async (query: string) => {
       console.log("Debounced search query:", query);
       if (!query.trim()) {
-        // Reset to show all products when search is cleared
         return;
       }
 
@@ -335,8 +351,10 @@ const Products = () => {
         
         // Replace products with search results
         setAllProducts(extendedResults);
-        setHasMore(false); // Disable infinite scroll for search results
+        setHasMore(false);
         setSkip(0);
+        // Reset filters ref for search results
+        lastFiltersRef.current = { selectedCategory, sortBy, priceRange, searchQuery: query };
       } catch (error) {
         console.error('Error searching products:', error);
         toast.error('Failed to search products');
@@ -344,7 +362,7 @@ const Products = () => {
         setIsSearching(false);
       }
     }, 500),
-    []
+    [selectedCategory, sortBy, priceRange]
   );
 
   // Update handleSearch to use debounced search
@@ -353,16 +371,17 @@ const Products = () => {
     setSearchQuery(query);
     
     if (!query.trim()) {
-      // If search is cleared, reload initial products
+      // If search is cleared, reload initial products and reset filters ref
       setAllProducts([]);
       setSkip(0);
       setHasMore(true);
+      lastFiltersRef.current = { selectedCategory, sortBy, priceRange, searchQuery: "" };
       loadProducts();
     } else {
       // Trigger debounced search
       debouncedSearch(query);
     }
-  }, [debouncedSearch, loadProducts]);
+  }, [debouncedSearch, loadProducts, selectedCategory, sortBy, priceRange]);
 
   // Cleanup debounced search on unmount
   useEffect(() => {
@@ -370,6 +389,11 @@ const Products = () => {
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
+
+  // Update filters ref when sorting/filtering options change
+  useEffect(() => {
+    lastFiltersRef.current = { selectedCategory, sortBy, priceRange, searchQuery };
+  }, [selectedCategory, sortBy, priceRange, searchQuery]);
 
   // Get unique categories from products
   const categories = useMemo(() =>
@@ -515,8 +539,6 @@ const Products = () => {
       )}
     </>
   ), [filteredAndSortedProducts, viewMode, wishlistStatus, loadingWishlist, handleNavigate, handleWishlistToggle, loading, hasMore, searchQuery, isLoadingMore, handleClearFilters]);
-
-  // ... keep existing code (sidebar, headerControls, price ranges, etc.)
 
   // Update the sidebar JSX
   const sidebar = useMemo(() => (
