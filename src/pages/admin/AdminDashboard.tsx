@@ -134,13 +134,30 @@ const AdminDashboard = () => {
         updatedAt: new Date().toISOString(),
       };
       
-      // Create product with formatted data
-      const product = await createProduct({
-        ...data,
+      // Create product with properly typed data
+      const productData = {
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        discountPercentage: data.discountPercentage,
+        rating: data.rating || 0,
+        stock: data.stock,
+        brand: data.brand,
+        category: data.category,
+        thumbnail: data.thumbnail,
         images: imagesArray,
         meta,
-        rating: data.rating || 0,
-      });
+        availabilityStatus: data.availabilityStatus,
+        dimensions: data.dimensions,
+        weight: data.weight,
+        sku: data.sku,
+        warrantyInformation: data.warrantyInformation,
+        returnPolicy: data.returnPolicy,
+        shippingInformation: data.shippingInformation,
+        minimumOrderQuantity: data.minimumOrderQuantity,
+      };
+      
+      const product = await createProduct(productData);
       
       toast.success(`Product "${product.title}" created successfully!`);
       
