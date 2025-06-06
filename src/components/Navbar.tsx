@@ -52,7 +52,7 @@ const Navbar = () => {
                         className="text-2xl font-bold text-slate-900 cursor-pointer"
                         onClick={() => navigate('/')}
                     >
-                        Skena.co
+                        Sun_fashion
                     </div>
 
                     {/* Desktop Navigation */}

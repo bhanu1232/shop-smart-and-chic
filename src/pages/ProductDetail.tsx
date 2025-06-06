@@ -202,7 +202,7 @@ const ProductDetail = () => {
   const originalPrice = product.price / (1 - product.discountPercentage / 100);
   const discountAmount = originalPrice - product.price;
   const discountPercentage = Math.round(product.discountPercentage);
-  
+
   // Safely handle reviews array - provide fallback if undefined
   const reviews = product.reviews || [];
 
@@ -271,15 +271,15 @@ const ProductDetail = () => {
 
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-2xl font-bold text-gray-900">
-                  ${product.price.toFixed(2)}
+                  ₹{product.price.toFixed(2)}
                 </span>
                 {product.discountPercentage > 0 && (
                   <>
                     <span className="text-lg text-gray-500 line-through">
-                      ${originalPrice.toFixed(2)}
+                      ₹{originalPrice.toFixed(2)}
                     </span>
                     <Badge variant="destructive" className="bg-red-100 text-red-700 text-xs">
-                      Save ${discountAmount.toFixed(2)}
+                      Save ₹{discountAmount.toFixed(2)}
                     </Badge>
                   </>
                 )}
@@ -335,7 +335,7 @@ const ProductDetail = () => {
                   ) : (
                     <ShoppingCart className="mr-2 h-4 w-4" />
                   )}
-                  {isInCart ? "Go to Cart" : `Add - $${(product.price * quantity).toFixed(2)}`}
+                  {isInCart ? "Go to Cart" : `Add - ₹${(product.price * quantity).toFixed(2)}`}
                 </Button>
                 <Button
                   variant="outline"

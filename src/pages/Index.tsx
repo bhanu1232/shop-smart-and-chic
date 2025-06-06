@@ -232,10 +232,10 @@ const Index = () => {
                     </div>
                     <h3 className="text-sm font-medium text-slate-900 mb-2 line-clamp-2">{product.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-base font-medium text-slate-900">${product.price}</span>
+                      <span className="text-base font-medium text-slate-900">₹{product.price}</span>
                       {product.discountPercentage > 0 && (
                         <span className="text-sm text-slate-500 line-through">
-                          ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
+                          ₹{(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
                         </span>
                       )}
                     </div>
