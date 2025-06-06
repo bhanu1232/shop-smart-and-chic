@@ -49,7 +49,7 @@ const Navbar = () => {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div
-                        className="text-2xl font-bold text-slate-900 cursor-pointer"
+                        className="text-2xl font-bold max-sm:text-lg text-slate-900 cursor-pointer"
                         onClick={() => navigate('/')}
                     >
                         Sun_fashion
