@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -201,6 +202,9 @@ const ProductDetail = () => {
   const originalPrice = product.price / (1 - product.discountPercentage / 100);
   const discountAmount = originalPrice - product.price;
   const discountPercentage = Math.round(product.discountPercentage);
+  
+  // Safely handle reviews array - provide fallback if undefined
+  const reviews = product.reviews || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,7 +264,7 @@ const ProductDetail = () => {
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">({product.reviews.length})</span>
+                <span className="text-sm text-gray-600">({reviews.length})</span>
               </div>
 
               <h1 className="text-2xl font-bold text-gray-900 mb-3">{product.title}</h1>
@@ -391,7 +395,7 @@ const ProductDetail = () => {
             <Tabs defaultValue="details" className="mt-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="details" className="text-sm">Details</TabsTrigger>
-                <TabsTrigger value="reviews" className="text-sm">Reviews ({product.reviews.length})</TabsTrigger>
+                <TabsTrigger value="reviews" className="text-sm">Reviews ({reviews.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="mt-4">
@@ -417,23 +421,27 @@ const ProductDetail = () => {
 
               <TabsContent value="reviews" className="mt-4">
                 <div className="space-y-4 max-h-64 overflow-y-auto">
-                  {product.reviews.map((review, index) => (
-                    <div key={index} className="border-b pb-3 last:border-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-3 w-3 ${i < review.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
-                          />
-                        ))}
+                  {reviews.length > 0 ? (
+                    reviews.map((review, index) => (
+                      <div key={index} className="border-b pb-3 last:border-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-3 w-3 ${i < review.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-gray-700 text-sm mb-1">{review.comment}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{review.reviewerName}</span>
+                          <span>{review.date}</span>
+                        </div>
                       </div>
-                      <p className="text-gray-700 text-sm mb-1">{review.comment}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{review.reviewerName}</span>
-                        <span>{review.date}</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">No reviews yet.</p>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
