@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,9 @@ const ProductCard = memo(({
         }
     };
 
+    // Safe access to reviews with fallback
+    const reviewsCount = product.reviews?.length || 0;
+
     return (
         <Card
             className={`group relative border border-gray-100/80 bg-white/90 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-lg/50 hover:border-gray-200/80 ${viewMode === "list" ? "flex flex-row" : ""
@@ -195,7 +199,7 @@ const ProductCard = memo(({
                             />
                         ))}
                     </div>
-                    <span className="text-sm text-gray-500">({product.reviews.length})</span>
+                    <span className="text-sm text-gray-500">({reviewsCount})</span>
                 </div>
 
                 <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 h-12 group-hover:text-gray-700 transition-colors">
