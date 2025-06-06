@@ -4,11 +4,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -24,12 +24,35 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createProduct, fetchCategories, fetchBrands } from "@/api/products";
-import { Loader2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { 
+  createProduct, 
+  fetchCategories, 
+  fetchBrands, 
+  fetchProducts, 
+  updateProduct, 
+  deleteProduct,
+  Product 
+} from "@/api/products";
+import { Loader2, Edit, Trash2, Plus } from "lucide-react";
 
-const LOGIN_PASSWORD = "admin123"; // In a real application, this should be stored securely
+const LOGIN_PASSWORD = "admin123";
 
-// Form schema for the product data
 const productFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -67,6 +90,17 @@ const AdminDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  
+  const queryClient = useQueryClient();
+  
+  const { data: products = [], isLoading: isLoadingProducts, refetch } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: () => fetchProducts(100, 0),
+    enabled: isAuthenticated,
+  });
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -119,13 +153,70 @@ const AdminDashboard = () => {
     }, 1000);
   };
 
+  const resetForm = () => {
+    form.reset({
+      title: "",
+      description: "",
+      price: 0,
+      discountPercentage: 0,
+      stock: 0,
+      brand: "",
+      category: "",
+      thumbnail: "",
+      images: "",
+      rating: 0,
+      availabilityStatus: "In Stock",
+      minimumOrderQuantity: 1,
+    });
+    setEditingProduct(null);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    form.reset({
+      title: product.title,
+      description: product.description,
+      price: product.price,
+      discountPercentage: product.discountPercentage,
+      stock: product.stock,
+      brand: product.brand,
+      category: product.category,
+      thumbnail: product.thumbnail,
+      images: product.images.join(", "),
+      rating: product.rating,
+      availabilityStatus: product.availabilityStatus || "In Stock",
+      dimensions: product.dimensions || "",
+      weight: product.weight || 0,
+      sku: product.sku || "",
+      warrantyInformation: product.warrantyInformation || "",
+      returnPolicy: product.returnPolicy || "",
+      shippingInformation: product.shippingInformation || "",
+      minimumOrderQuantity: product.minimumOrderQuantity || 1,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (productId: number) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    
+    setDeletingProductId(productId);
+    try {
+      await deleteProduct(productId);
+      toast.success("Product deleted successfully!");
+      refetch();
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      toast.error("Failed to delete product");
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
   const onSubmit = async (data: ProductFormValues) => {
     setIsSubmitting(true);
     try {
-      // Convert comma-separated image URLs to array
       const imagesArray = data.images.split(",").map(url => url.trim());
       
-      // Prepare meta object
       const meta = {
         title: `${data.title} - ${data.brand}`,
         description: data.description.substring(0, 150),
@@ -134,7 +225,6 @@ const AdminDashboard = () => {
         updatedAt: new Date().toISOString(),
       };
       
-      // Create product with properly typed data
       const productData = {
         title: data.title,
         description: data.description,
@@ -157,28 +247,20 @@ const AdminDashboard = () => {
         minimumOrderQuantity: data.minimumOrderQuantity,
       };
       
-      const product = await createProduct(productData);
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productData);
+        toast.success(`Product "${productData.title}" updated successfully!`);
+      } else {
+        await createProduct(productData);
+        toast.success(`Product "${productData.title}" created successfully!`);
+      }
       
-      toast.success(`Product "${product.title}" created successfully!`);
-      
-      // Reset form
-      form.reset({
-        title: "",
-        description: "",
-        price: 0,
-        discountPercentage: 0,
-        stock: 0,
-        brand: "",
-        category: "",
-        thumbnail: "",
-        images: "",
-        rating: 0,
-        availabilityStatus: "In Stock",
-        minimumOrderQuantity: 1,
-      });
+      resetForm();
+      setIsDialogOpen(false);
+      refetch();
     } catch (error) {
-      console.error("Failed to create product:", error);
-      toast.error("Failed to create product");
+      console.error("Failed to save product:", error);
+      toast.error("Failed to save product");
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +295,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <div className="p-6 pt-0">
             <Button 
               onClick={handleLogin} 
               className="w-full"
@@ -228,7 +310,7 @@ const AdminDashboard = () => {
                 "Login"
               )}
             </Button>
-          </CardFooter>
+          </div>
         </Card>
       </div>
     );
@@ -236,326 +318,292 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gray-900 text-white">
-            <CardTitle className="text-2xl font-bold">Product Management</CardTitle>
-            <CardDescription className="text-gray-300">
-              Add new products to your store
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
+            <p className="text-gray-600">Manage your product inventory</p>
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? "Edit Product" : "Add New Product"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingProduct ? "Update the product details below." : "Fill in the product details below."}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="iPhone 15 Pro Max" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price ($)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder="1199.99" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="discountPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Discount %</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.1" placeholder="5" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stock</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="45" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="brand"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Brand</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Apple" 
+                              list="brands-list"
+                              {...field} 
+                            />
+                          </FormControl>
+                          {brands.length > 0 && (
+                            <datalist id="brands-list">
+                              {brands.map(brand => (
+                                <option key={brand} value={brand} />
+                              ))}
+                            </datalist>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="smartphones" 
+                              list="categories-list"
+                              {...field} 
+                            />
+                          </FormControl>
+                          {categories.length > 0 && (
+                            <datalist id="categories-list">
+                              {categories.map(category => (
+                                <option key={category} value={category} />
+                              ))}
+                            </datalist>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Product description" 
+                            className="min-h-20"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="thumbnail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Thumbnail URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/thumbnail.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="images"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image URLs</FormLabel>
+                          <FormControl>
+                            <Input placeholder="url1, url2, url3" {...field} />
+                          </FormControl>
+                          <FormDescription>Comma-separated URLs</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-4 pt-4">
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {editingProduct ? "Updating..." : "Creating..."}
+                        </>
+                      ) : (
+                        editingProduct ? "Update Product" : "Create Product"
+                      )}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Products ({products.length})</CardTitle>
+            <CardDescription>
+              All products in your inventory
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="iPhone 15 Pro Max" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price ($)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="1199.99" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="discountPercentage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Discount Percentage</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.1" placeholder="5" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Stock</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="45" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="brand"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Brand</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Apple" 
-                            list="brands-list"
-                            {...field} 
+          <CardContent>
+            {isLoadingProducts ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Image</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <img 
+                            src={product.thumbnail} 
+                            alt={product.title}
+                            className="w-12 h-12 object-cover rounded"
                           />
-                        </FormControl>
-                        {brands.length > 0 && (
-                          <datalist id="brands-list">
-                            {brands.map(brand => (
-                              <option key={brand} value={brand} />
-                            ))}
-                          </datalist>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="smartphones" 
-                            list="categories-list"
-                            {...field} 
-                          />
-                        </FormControl>
-                        {categories.length > 0 && (
-                          <datalist id="categories-list">
-                            {categories.map(category => (
-                              <option key={category} value={category} />
-                            ))}
-                          </datalist>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Latest iPhone with titanium design, A17 Pro chip, and advanced camera system" 
-                          className="min-h-32"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="thumbnail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Thumbnail URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://example.com/thumbnail.jpg" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="images"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Image URLs (comma-separated)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://example.com/1.jpg, https://example.com/2.jpg" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Enter multiple image URLs separated by commas
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="rating"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rating (0-5)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.1" min="0" max="5" placeholder="4.9" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="availabilityStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Availability Status</FormLabel>
-                        <FormControl>
-                          <Input placeholder="In Stock" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="dimensions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dimensions</FormLabel>
-                        <FormControl>
-                          <Input placeholder="159.9 x 76.7 x 8.25 mm" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Weight (g)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="221" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SKU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="APL-IP15PM-256" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="minimumOrderQuantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Order Quantity</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="warrantyInformation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Warranty Information</FormLabel>
-                        <FormControl>
-                          <Input placeholder="1 year limited warranty" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="returnPolicy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Return Policy</FormLabel>
-                        <FormControl>
-                          <Input placeholder="30-day return policy" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="shippingInformation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Shipping Information</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ships within 2-3 business days" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Product...
-                    </>
-                  ) : (
-                    "Create Product"
-                  )}
-                </Button>
-              </form>
-            </Form>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-xs truncate">
+                          {product.title}
+                        </TableCell>
+                        <TableCell>{product.brand}</TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell>${product.price}</TableCell>
+                        <TableCell>{product.stock}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(product.id)}
+                              disabled={deletingProductId === product.id}
+                            >
+                              {deletingProductId === product.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -1,4 +1,3 @@
-
 export interface Product {
   id: number;
   title: string;
@@ -83,6 +82,44 @@ export async function createProduct(productData: Omit<Product, "id">): Promise<P
     return await response.json();
   } catch (error) {
     console.error('Error creating product:', error);
+    throw error;
+  }
+}
+
+export async function updateProduct(id: number, productData: Partial<Product>): Promise<Product> {
+  try {
+    const response = await fetch(`https://products-api-2tb6.onrender.com/products/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(productData),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update product');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating product:', error);
+    throw error;
+  }
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+  try {
+    const response = await fetch(`https://products-api-2tb6.onrender.com/products/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete product');
+    }
+  } catch (error) {
+    console.error('Error deleting product:', error);
     throw error;
   }
 }
