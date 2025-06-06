@@ -49,7 +49,7 @@ export const fetchProducts = async (limit: number = 10, skip: number = 0) => {
 };
 
 export async function fetchProductById(id: number): Promise<Product> {
-  const response = await fetch(`https://products-api-2tb6.onrender.com/products/${id}`);
+  const response = await fetch(`https://products-api-2tb6.onrender.com/product/${id}`);
   if (!response.ok) {
     throw new Error('Product not found');
   }
