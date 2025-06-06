@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -49,7 +48,7 @@ import {
   deleteProduct,
   Product 
 } from "@/api/products";
-import { Loader2, Edit, Trash2, Plus } from "lucide-react";
+import { Loader2, Edit, Trash2, Plus, Search, X } from "lucide-react";
 
 const LOGIN_PASSWORD = "admin123";
 
@@ -93,6 +92,7 @@ const AdminDashboard = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const queryClient = useQueryClient();
   
@@ -101,6 +101,20 @@ const AdminDashboard = () => {
     queryFn: () => fetchProducts(100, 0),
     enabled: isAuthenticated,
   });
+  
+  // Filter products based on search query
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    
+    const query = searchQuery.toLowerCase();
+    return products.filter(product => 
+      product.title.toLowerCase().includes(query) ||
+      product.brand.toLowerCase().includes(query) ||
+      product.category.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query) ||
+      product.id.toString().includes(query)
+    );
+  }, [products, searchQuery]);
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -264,6 +278,10 @@ const AdminDashboard = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
   };
 
   if (!isAuthenticated) {
@@ -532,11 +550,50 @@ const AdminDashboard = () => {
           </Dialog>
         </div>
 
+        {/* Search Bar Section */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Search Products</CardTitle>
+            <CardDescription>
+              Search by product name, brand, category, description, or ID
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {searchQuery && (
+              <div className="mt-3 text-sm text-gray-600">
+                Found {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} 
+                {searchQuery && ` matching "${searchQuery}"`}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle>Products ({products.length})</CardTitle>
+            <CardTitle>
+              Products ({filteredProducts.length}{searchQuery ? ` of ${products.length}` : ''})
+            </CardTitle>
             <CardDescription>
-              All products in your inventory
+              {searchQuery ? `Search results for "${searchQuery}"` : "All products in your inventory"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -544,12 +601,31 @@ const AdminDashboard = () => {
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 mb-2">
+                  {searchQuery ? (
+                    <>
+                      <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      No products found matching "{searchQuery}"
+                    </>
+                  ) : (
+                    "No products available"
+                  )}
+                </div>
+                {searchQuery && (
+                  <Button variant="outline" onClick={clearSearch} className="mt-2">
+                    Clear search
+                  </Button>
+                )}
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Image</TableHead>
+                      <TableHead>ID</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Brand</TableHead>
                       <TableHead>Category</TableHead>
@@ -559,7 +635,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map((product) => (
+                    {filteredProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell>
                           <img 
@@ -568,19 +644,66 @@ const AdminDashboard = () => {
                             className="w-12 h-12 object-cover rounded"
                           />
                         </TableCell>
-                        <TableCell className="font-medium max-w-xs truncate">
-                          {product.title}
+                        <TableCell className="font-mono text-sm text-gray-500">
+                          #{product.id}
                         </TableCell>
-                        <TableCell>{product.brand}</TableCell>
-                        <TableCell>{product.category}</TableCell>
+                        <TableCell className="font-medium max-w-xs">
+                          <div className="truncate" title={product.title}>
+                            {searchQuery ? (
+                              <span dangerouslySetInnerHTML={{
+                                __html: product.title.replace(
+                                  new RegExp(`(${searchQuery})`, 'gi'),
+                                  '<mark class="bg-yellow-200 px-1 rounded">$1</mark>'
+                                )
+                              }} />
+                            ) : (
+                              product.title
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {searchQuery ? (
+                            <span dangerouslySetInnerHTML={{
+                              __html: product.brand.replace(
+                                new RegExp(`(${searchQuery})`, 'gi'),
+                                '<mark class="bg-yellow-200 px-1 rounded">$1</mark>'
+                              )
+                            }} />
+                          ) : (
+                            product.brand
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {searchQuery ? (
+                            <span dangerouslySetInnerHTML={{
+                              __html: product.category.replace(
+                                new RegExp(`(${searchQuery})`, 'gi'),
+                                '<mark class="bg-yellow-200 px-1 rounded">$1</mark>'
+                              )
+                            }} />
+                          ) : (
+                            product.category
+                          )}
+                        </TableCell>
                         <TableCell>${product.price}</TableCell>
-                        <TableCell>{product.stock}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            product.stock > 10 
+                              ? 'bg-green-100 text-green-800' 
+                              : product.stock > 0 
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                          }`}>
+                            {product.stock}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(product)}
+                              title="Edit product"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -589,6 +712,7 @@ const AdminDashboard = () => {
                               size="sm"
                               onClick={() => handleDelete(product.id)}
                               disabled={deletingProductId === product.id}
+                              title="Delete product"
                             >
                               {deletingProductId === product.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
