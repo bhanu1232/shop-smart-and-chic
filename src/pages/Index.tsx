@@ -128,19 +128,19 @@ const Index = () => {
       </div>
 
       {/* Hero Banner Section */}
-      <section className="relative mx-[75px] h-[500px] overflow-hidden group cursor-pointer" onClick={() => navigate('/products')}>
+      <section className="relative mx-4 md:mx-[75px] h-[300px] md:h-[500px] overflow-hidden group cursor-pointer" onClick={() => navigate('/products')}>
         <div className="absolute inset-0">
           <img
             src="/Home/Hero.jpg"
             alt="Hero Banner"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
+          <div className="absolute inset-0 bg-black/30 md:bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
           <Button
             size="lg"
-            className="bg-black/40 border-[1px] border-white text-white px-8 py-5 text-sm rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            className="bg-black/60 md:bg-black/40 border-[1px] border-white text-white px-6 md:px-8 py-4 md:py-5 text-sm rounded-full font-medium opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           >
             Shop Now
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -150,10 +150,10 @@ const Index = () => {
 
       {/* Features Bar */}
       <section className="bg-white border-b">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row justify-center gap-[200px] items-center">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-[200px] items-center">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-4">
+              <div key={index} className="flex items-center gap-4 w-full md:w-auto">
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <feature.icon className="h-5 w-5 text-slate-900" />
                 </div>
