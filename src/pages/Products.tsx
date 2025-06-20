@@ -161,7 +161,7 @@ const Products = () => {
     return result;
   }, [allProducts, searchQuery, selectedCategory, priceRange, sortBy]);
 
-  // Navigation handler
+  // Navigation handler - fixed to handle number type correctly
   const handleNavigate = useCallback((productId: number) => {
     navigate(`/product/${productId}`);
   }, [navigate]);
@@ -419,7 +419,7 @@ const Products = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Add handleWishlistToggle
+  // Add handleWishlistToggle - fixed to handle string type correctly for wishlist operations
   const handleWishlistToggle = useCallback(async (productId: string) => {
     if (!user) {
       setIsSignInModalOpen(true);
