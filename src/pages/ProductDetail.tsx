@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,7 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchProductById(parseInt(id));
+        const data = await fetchProductById(id);
         setProduct(data);
       } catch (error) {
         setError(error instanceof Error ? error.message : "Failed to load product");
@@ -122,7 +121,7 @@ const ProductDetail = () => {
 
     setIsSharing(true);
     try {
-      const shareUrl = `${window.location.origin}/product/${product.id}`;
+      const shareUrl = `${window.location.origin}/products/${product.id}`;
       if (navigator.share) {
         await navigator.share({
           title: product.title,

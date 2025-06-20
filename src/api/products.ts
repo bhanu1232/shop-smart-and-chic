@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string;
   title: string;
   description: string;
   price: number;
@@ -35,7 +35,7 @@ export interface Product {
 
 export const fetchProducts = async (limit: number = 10, skip: number = 0) => {
   try {
-    const response = await fetch(`https://products-api-2tb6.onrender.com/products?limit=${limit}&skip=${skip}`);
+    const response = await fetch(`https://items-api-ivory.vercel.app/api/products?limit=${limit}&skip=${skip}`);
     if (!response.ok) {
       throw new Error('Failed to fetch products');
     }
@@ -47,8 +47,8 @@ export const fetchProducts = async (limit: number = 10, skip: number = 0) => {
   }
 };
 
-export async function fetchProductById(id: number): Promise<Product> {
-  const response = await fetch(`https://products-api-2tb6.onrender.com/product/${id}`);
+export async function fetchProductById(id: string): Promise<Product> {
+  const response = await fetch(`https://items-api-ivory.vercel.app/api/products/${id}`);
   if (!response.ok) {
     throw new Error('Product not found');
   }
@@ -56,7 +56,7 @@ export async function fetchProductById(id: number): Promise<Product> {
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
-  const response = await fetch(`https://products-api-2tb6.onrender.com/products/search?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`https://items-api-ivory.vercel.app/api/products/search?q=${encodeURIComponent(query)}`);
   if (!response.ok) {
     throw new Error('Failed to search products');
   }
@@ -66,7 +66,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
 
 export async function createProduct(productData: Omit<Product, "id">): Promise<Product> {
   try {
-    const response = await fetch('https://products-api-2tb6.onrender.com/products', {
+    const response = await fetch('https://items-api-ivory.vercel.app/products', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,9 +86,9 @@ export async function createProduct(productData: Omit<Product, "id">): Promise<P
   }
 }
 
-export async function updateProduct(id: number, productData: Partial<Product>): Promise<Product> {
+export async function updateProduct(id: string, productData: Partial<Product>): Promise<Product> {
   try {
-    const response = await fetch(`https://products-api-2tb6.onrender.com/products/${id}`, {
+    const response = await fetch(`https://items-api-ivory.vercel.app/api/products/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -108,9 +108,9 @@ export async function updateProduct(id: number, productData: Partial<Product>): 
   }
 }
 
-export async function deleteProduct(id: number): Promise<void> {
+export async function deleteProduct(id: string): Promise<void> {
   try {
-    const response = await fetch(`https://products-api-2tb6.onrender.com/products/${id}`, {
+    const response = await fetch(`https://items-api-ivory.vercel.app/products/${id}`, {
       method: 'DELETE',
     });
     
@@ -125,7 +125,7 @@ export async function deleteProduct(id: number): Promise<void> {
 }
 
 export async function fetchCategories(): Promise<string[]> {
-  const response = await fetch('https://products-api-2tb6.onrender.com/products/categories');
+  const response = await fetch('https://items-api-ivory.vercel.app/api/products/categories');
   if (!response.ok) {
     throw new Error('Failed to fetch categories');
   }
@@ -133,7 +133,7 @@ export async function fetchCategories(): Promise<string[]> {
 }
 
 export async function fetchBrands(): Promise<string[]> {
-  const response = await fetch('https://products-api-2tb6.onrender.com/products/brands');
+  const response = await fetch('https://items-api-ivory.vercel.app/api/products/brands');
   if (!response.ok) {
     throw new Error('Failed to fetch brands');
   }

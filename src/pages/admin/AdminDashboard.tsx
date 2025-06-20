@@ -39,14 +39,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
-  createProduct, 
-  fetchCategories, 
-  fetchBrands, 
-  fetchProducts, 
-  updateProduct, 
+import {
+  createProduct,
+  fetchCategories,
+  fetchBrands,
+  fetchProducts,
+  updateProduct,
   deleteProduct,
-  Product 
+  Product
 } from "@/api/products";
 import { Loader2, Edit, Trash2, Plus, Search, X } from "lucide-react";
 
@@ -93,21 +93,21 @@ const AdminDashboard = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const queryClient = useQueryClient();
-  
+
   const { data: products = [], isLoading: isLoadingProducts, refetch } = useQuery({
     queryKey: ['admin-products'],
     queryFn: () => fetchProducts(100, 0),
     enabled: isAuthenticated,
   });
-  
+
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
-    
+
     const query = searchQuery.toLowerCase();
-    return products.filter(product => 
+    return products.filter(product =>
       product.title.toLowerCase().includes(query) ||
       product.brand.toLowerCase().includes(query) ||
       product.category.toLowerCase().includes(query) ||
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
       product.id.toString().includes(query)
     );
   }, [products, searchQuery]);
-  
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -212,10 +212,10 @@ const AdminDashboard = () => {
 
   const handleDelete = async (productId: number) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    
+
     setDeletingProductId(productId);
     try {
-      await deleteProduct(productId);
+      await deleteProduct(productId.toString());
       toast.success("Product deleted successfully!");
       refetch();
     } catch (error) {
@@ -230,7 +230,7 @@ const AdminDashboard = () => {
     setIsSubmitting(true);
     try {
       const imagesArray = data.images.split(",").map(url => url.trim());
-      
+
       const meta = {
         title: `${data.title} - ${data.brand}`,
         description: data.description.substring(0, 150),
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      
+
       const productData = {
         title: data.title,
         description: data.description,
@@ -260,7 +260,7 @@ const AdminDashboard = () => {
         shippingInformation: data.shippingInformation,
         minimumOrderQuantity: data.minimumOrderQuantity,
       };
-      
+
       if (editingProduct) {
         await updateProduct(editingProduct.id, productData);
         toast.success(`Product "${productData.title}" updated successfully!`);
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
         await createProduct(productData);
         toast.success(`Product "${productData.title}" created successfully!`);
       }
-      
+
       resetForm();
       setIsDialogOpen(false);
       refetch();
@@ -296,7 +296,7 @@ const AdminDashboard = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <Input 
+                <Input
                   id="password"
                   type="password"
                   value={password}
@@ -314,8 +314,8 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
           <div className="p-6 pt-0">
-            <Button 
-              onClick={handleLogin} 
+            <Button
+              onClick={handleLogin}
               className="w-full"
               disabled={isAuthenticating}
             >
@@ -342,7 +342,7 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
             <p className="text-gray-600">Manage your product inventory</p>
           </div>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gap-2">
@@ -350,7 +350,7 @@ const AdminDashboard = () => {
                 Add Product
               </Button>
             </DialogTrigger>
-            
+
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
                   {editingProduct ? "Update the product details below." : "Fill in the product details below."}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -377,7 +377,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="price"
@@ -391,7 +391,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="discountPercentage"
@@ -405,7 +405,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="stock"
@@ -419,7 +419,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="brand"
@@ -427,10 +427,10 @@ const AdminDashboard = () => {
                         <FormItem>
                           <FormLabel>Brand</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="Apple" 
+                            <Input
+                              placeholder="Apple"
                               list="brands-list"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           {brands.length > 0 && (
@@ -444,7 +444,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="category"
@@ -452,10 +452,10 @@ const AdminDashboard = () => {
                         <FormItem>
                           <FormLabel>Category</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="smartphones" 
+                            <Input
+                              placeholder="smartphones"
                               list="categories-list"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           {categories.length > 0 && (
@@ -470,7 +470,7 @@ const AdminDashboard = () => {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -478,17 +478,17 @@ const AdminDashboard = () => {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Product description" 
+                          <Textarea
+                            placeholder="Product description"
                             className="min-h-20"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -503,7 +503,7 @@ const AdminDashboard = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="images"
@@ -519,10 +519,10 @@ const AdminDashboard = () => {
                       )}
                     />
                   </div>
-                  
+
                   <div className="flex gap-4 pt-4">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isSubmitting}
                       className="flex-1"
                     >
@@ -535,9 +535,9 @@ const AdminDashboard = () => {
                         editingProduct ? "Update Product" : "Create Product"
                       )}
                     </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => setIsDialogOpen(false)}
                       className="flex-1"
                     >
@@ -580,7 +580,7 @@ const AdminDashboard = () => {
             </div>
             {searchQuery && (
               <div className="mt-3 text-sm text-gray-600">
-                Found {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} 
+                Found {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
                 {searchQuery && ` matching "${searchQuery}"`}
               </div>
             )}
@@ -638,8 +638,8 @@ const AdminDashboard = () => {
                     {filteredProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell>
-                          <img 
-                            src={product.thumbnail} 
+                          <img
+                            src={product.thumbnail}
                             alt={product.title}
                             className="w-12 h-12 object-cover rounded"
                           />
@@ -687,13 +687,12 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>${product.price}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            product.stock > 10 
-                              ? 'bg-green-100 text-green-800' 
-                              : product.stock > 0 
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${product.stock > 10
+                              ? 'bg-green-100 text-green-800'
+                              : product.stock > 0
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {product.stock}
                           </span>
                         </TableCell>
