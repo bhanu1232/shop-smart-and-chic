@@ -83,6 +83,8 @@ const productFormSchema = z.object({
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 const AdminDashboard = () => {
+  console.log("AdminDashboard component is rendering");
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [password, setPassword] = useState("");
@@ -133,6 +135,10 @@ const AdminDashboard = () => {
       minimumOrderQuantity: 1,
     },
   });
+
+  useEffect(() => {
+    console.log("AdminDashboard mounted, isAuthenticated:", isAuthenticated);
+  }, []);
 
   useEffect(() => {
     const loadCategoriesAndBrands = async () => {
@@ -283,6 +289,8 @@ const AdminDashboard = () => {
   const clearSearch = () => {
     setSearchQuery("");
   };
+
+  console.log("Rendering AdminDashboard, isAuthenticated:", isAuthenticated);
 
   if (!isAuthenticated) {
     return (
