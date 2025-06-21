@@ -218,13 +218,6 @@ const Index = () => {
                         {Math.round(product.discountPercentage)}% OFF
                       </Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
