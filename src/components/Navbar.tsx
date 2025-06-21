@@ -44,7 +44,7 @@ const Navbar = () => {
     }, [isAuthenticated, user?.uid]); // Re-run effect if auth state or user changes
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white backdrop-blur-sm border-b">
+        <nav className="fixed top-0 overflow-hidden left-0 right-0 z-50 bg-white backdrop-blur-sm border-b">
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -52,7 +52,7 @@ const Navbar = () => {
                         className="text-2xl font-bold max-sm:text-lg text-slate-900 cursor-pointer"
                         onClick={() => navigate('/')}
                     >
-                        Sun_fashion
+                        <img src="/Home/logo.png" alt="" className="h-auto w-[150px] bg-gray-200" />
                     </div>
 
                     {/* Desktop Navigation */}

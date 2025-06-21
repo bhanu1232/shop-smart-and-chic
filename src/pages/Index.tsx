@@ -108,18 +108,18 @@ const Index = () => {
       </div>
 
       {/* Offers Banner */}
-      <div className="bg-slate-900 text-white py-2 mb-2 animate-pulse">
+      <div className="bg-slate-900 text-white py-2 mb-2">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center gap-8 text-sm">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 animate-pulse">
               <Zap className="h-4 w-4 text-yellow-400" />
               <span>Free Shipping on Orders Over $100</span>
             </div>
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2 animate-pulse">
               <Shield className="h-4 w-4 text-green-400" />
               <span>Secure Payment</span>
             </div>
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2 animate-pulse">
               <RotateCcw className="h-4 w-4 text-blue-400" />
               <span>30-Day Returns</span>
             </div>
@@ -128,10 +128,10 @@ const Index = () => {
       </div>
 
       {/* Hero Banner Section */}
-      <section className="relative mx-4 md:mx-[75px] h-[300px] md:h-[500px] overflow-hidden group cursor-pointer" onClick={() => navigate('/products')}>
+      <section className="relative mx-4 md:mx-[15px] h-[300px] md:h-[550px] overflow-hidden group cursor-pointer" onClick={() => navigate('/products')}>
         <div className="absolute inset-0">
           <img
-            src="/Home/Hero.jpg"
+            src="/Home/Hero1.avif"
             alt="Hero Banner"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
