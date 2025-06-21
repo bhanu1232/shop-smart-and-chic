@@ -14,6 +14,7 @@ import About from "@/pages/About";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import Contact from "@/pages/Contact";
+import Chat from "@/pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

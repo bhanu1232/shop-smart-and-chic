@@ -10,6 +10,7 @@ import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
 import Navbar from "@/components/Navbar";
+import ChatBubble from "@/components/ChatBubble";
 import { db } from "@/config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
@@ -411,6 +412,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Chat Bubble */}
+      <ChatBubble />
 
       <SignInModal
         isOpen={isSignInModalOpen}

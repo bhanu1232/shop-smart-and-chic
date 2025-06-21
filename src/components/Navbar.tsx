@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Menu, User } from "lucide-react";
+import { ShoppingCart, Menu, User, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
@@ -66,6 +67,10 @@ const Navbar = () => {
                         <Button variant="ghost" onClick={() => navigate('/contact')}>
                             Contact
                         </Button>
+                        <Button variant="ghost" onClick={() => navigate('/chat')}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Chat
+                        </Button>
                     </div>
 
                     {/* Right Side Actions */}
@@ -82,6 +87,16 @@ const Navbar = () => {
                                     {cartCount}
                                 </span>
                             )}
+                        </Button>
+
+                        {/* Chat Button for Mobile */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="md:hidden"
+                            onClick={() => navigate('/chat')}
+                        >
+                            <MessageCircle className="h-5 w-5" />
                         </Button>
 
                         {isAuthenticated ? (
@@ -136,6 +151,10 @@ const Navbar = () => {
                             </Button>
                             <Button variant="ghost" onClick={() => navigate('/contact')}>
                                 Contact
+                            </Button>
+                            <Button variant="ghost" onClick={() => navigate('/chat')}>
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Chat Assistant
                             </Button>
                         </div>
                     </div>
