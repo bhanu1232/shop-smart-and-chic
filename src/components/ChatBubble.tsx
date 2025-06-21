@@ -11,7 +11,7 @@ const ChatBubble = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 cursor-pointer" onClick={() => navigate("/chat")}>
       <div className="relative">
         {/* Chat Bubble */}
         <Button
@@ -22,20 +22,6 @@ const ChatBubble = () => {
           <MessageCircle className="h-6 w-6 text-white" />
         </Button>
 
-        {/* Close button */}
-        <Button
-          onClick={() => setIsVisible(false)}
-          variant="ghost"
-          size="icon"
-          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-500 hover:bg-gray-600 text-white"
-        >
-          <X className="h-3 w-3" />
-        </Button>
-
-        {/* Notification badge */}
-        <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
-          <span className="text-xs text-white font-bold">!</span>
-        </div>
 
         {/* Tooltip */}
         <div className="absolute bottom-16 right-0 bg-black text-white text-sm px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">

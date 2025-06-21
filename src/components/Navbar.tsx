@@ -53,7 +53,7 @@ const Navbar = () => {
                         className="text-2xl font-bold max-sm:text-lg text-slate-900 cursor-pointer"
                         onClick={() => navigate('/')}
                     >
-                        <img src="/Home/logo.png" alt="" className="h-auto w-[150px] bg-gray-200" />
+                        <img src="/Home/logo.png" alt="" className="h-auto w-[150px] bg-slate-50" />
                     </div>
 
                     {/* Desktop Navigation */}
