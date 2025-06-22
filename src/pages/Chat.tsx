@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,84 +116,228 @@ const Chat = () => {
   const extractSearchTermsAndPrice = (message: string) => {
     const lowerMessage = message.toLowerCase();
     
-    // Extract price range
-    const priceMatch = lowerMessage.match(/under (\d+)|below (\d+)|less than (\d+)|(\d+)\s*k|(\d+)\s*thousand/);
-    let maxPrice = null;
+    // Enhanced price extraction with more patterns
+    const pricePatterns = [
+      /under ₹?(\d+)k?/g,
+      /below ₹?(\d+)k?/g,
+      /less than ₹?(\d+)k?/g,
+      /(\d+)k rupees?/g,
+      /₹(\d+)k?/g,
+      /rs\.? ?(\d+)k?/g,
+      /budget ₹?(\d+)k?/g,
+      /within ₹?(\d+)k?/g
+    ];
     
-    if (priceMatch) {
-      const price = priceMatch[1] || priceMatch[2] || priceMatch[3] || priceMatch[4] || priceMatch[5];
-      maxPrice = parseInt(price);
-      if (lowerMessage.includes('k') || lowerMessage.includes('thousand')) {
-        maxPrice *= 1000;
+    let maxPrice = null;
+    for (const pattern of pricePatterns) {
+      const matches = [...lowerMessage.matchAll(pattern)];
+      if (matches.length > 0) {
+        let price = parseInt(matches[0][1]);
+        if (lowerMessage.includes('k') || price < 100) {
+          price *= 1000;
+        }
+        maxPrice = price;
+        break;
       }
     }
 
-    // Extract product categories/terms
-    const productTerms = [
-      'shirt', 'shirts', 't-shirt', 't-shirts', 'tshirt', 'tshirts',
-      'dress', 'dresses', 'jeans', 'pants', 'trousers',
-      'shoes', 'sneakers', 'boots', 'sandals',
-      'jacket', 'jackets', 'hoodie', 'hoodies',
-      'bag', 'bags', 'watch', 'watches',
-      'accessories', 'jewelry'
-    ];
+    // Enhanced product category mapping
+    const categoryMappings = {
+      // Clothing
+      'shirt': ['shirt', 'shirts', 't-shirt', 't-shirts', 'tshirt', 'tshirts', 'polo', 'blouse'],
+      'dress': ['dress', 'dresses', 'gown', 'frock', 'maxi', 'midi'],
+      'jeans': ['jeans', 'denim', 'pants', 'trousers', 'chinos'],
+      'jacket': ['jacket', 'jackets', 'blazer', 'coat', 'outerwear'],
+      'hoodie': ['hoodie', 'hoodies', 'sweatshirt', 'pullover'],
+      'sweater': ['sweater', 'jumper', 'cardigan', 'knitwear'],
+      'skirt': ['skirt', 'mini skirt', 'maxi skirt'],
+      'shorts': ['shorts', 'bermuda'],
+      'top': ['top', 'tops', 'blouse', 'tank top', 'camisole'],
+      
+      // Footwear
+      'shoes': ['shoes', 'footwear'],
+      'sneakers': ['sneakers', 'trainers', 'running shoes', 'sport shoes'],
+      'boots': ['boots', 'ankle boots', 'combat boots'],
+      'sandals': ['sandals', 'flip flops', 'slippers'],
+      'heels': ['heels', 'high heels', 'stilettos', 'pumps'],
+      
+      // Accessories
+      'bag': ['bag', 'bags', 'handbag', 'purse', 'clutch', 'backpack', 'tote'],
+      'watch': ['watch', 'watches', 'timepiece'],
+      'jewelry': ['jewelry', 'jewellery', 'necklace', 'bracelet', 'earrings', 'ring'],
+      'belt': ['belt', 'belts'],
+      'hat': ['hat', 'cap', 'beanie'],
+      'sunglasses': ['sunglasses', 'shades', 'glasses'],
+      
+      // General categories
+      'accessories': ['accessories', 'accessory'],
+      'clothing': ['clothing', 'clothes', 'apparel', 'wear']
+    };
 
-    const foundTerms = productTerms.filter(term => lowerMessage.includes(term));
+    // Color extraction
+    const colors = ['black', 'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'orange', 'brown', 'grey', 'gray', 'navy', 'maroon'];
+    const foundColors = colors.filter(color => lowerMessage.includes(color));
+
+    // Find matching categories
+    let foundCategory = '';
+    let foundTerms = [];
+    
+    for (const [category, terms] of Object.entries(categoryMappings)) {
+      for (const term of terms) {
+        if (lowerMessage.includes(term)) {
+          foundCategory = category;
+          foundTerms = terms;
+          break;
+        }
+      }
+      if (foundCategory) break;
+    }
+
+    // If no specific category, try to extract any product-related words
+    if (!foundCategory) {
+      const productWords = lowerMessage.split(' ').filter(word => 
+        word.length > 3 && 
+        !['show', 'find', 'need', 'want', 'under', 'below', 'than', 'with', 'from', 'this', 'that', 'some', 'good', 'nice', 'best'].includes(word)
+      );
+      if (productWords.length > 0) {
+        foundCategory = productWords[0];
+      }
+    }
     
     return {
-      searchTerms: foundTerms.length > 0 ? foundTerms[0] : '',
+      searchTerms: foundCategory,
+      allTerms: foundTerms,
       maxPrice,
+      colors: foundColors,
       originalMessage: message
     };
   };
 
-  const findProducts = async (searchTerms: string, maxPrice: number | null) => {
+  const findProducts = async (searchInfo: any) => {
     try {
       let products: Product[] = [];
       
-      if (searchTerms) {
-        products = await searchProducts(searchTerms);
+      console.log('Search info:', searchInfo);
+      
+      // Try multiple search strategies for better results
+      if (searchInfo.searchTerms) {
+        // Primary search with main term
+        products = await searchProducts(searchInfo.searchTerms);
+        
+        // If no results with main term, try alternative terms
+        if (products.length === 0 && searchInfo.allTerms && searchInfo.allTerms.length > 1) {
+          for (const term of searchInfo.allTerms.slice(1)) {
+            products = await searchProducts(term);
+            if (products.length > 0) break;
+          }
+        }
+        
+        // If still no results, try broader category search
+        if (products.length === 0) {
+          const broadCategories = ['clothing', 'fashion', 'apparel'];
+          for (const category of broadCategories) {
+            if (searchInfo.searchTerms.includes(category.substring(0, 4))) {
+              products = await searchProducts(category);
+              if (products.length > 0) break;
+            }
+          }
+        }
       } else {
-        const allProducts = await fetchProducts(20);
-        products = allProducts;
+        // Get trending/popular products if no specific search term
+        products = await fetchProducts(20);
       }
+
+      console.log('Found products before filtering:', products.length);
+
+      // Enhanced filtering
+      let filteredProducts = [...products];
 
       // Filter by price if specified
-      if (maxPrice) {
-        products = products.filter(product => product.price <= maxPrice);
+      if (searchInfo.maxPrice) {
+        filteredProducts = filteredProducts.filter(product => product.price <= searchInfo.maxPrice);
+        console.log('After price filter:', filteredProducts.length);
       }
 
-      // Return top 4 products
-      return products.slice(0, 4);
+      // Filter by color if mentioned
+      if (searchInfo.colors && searchInfo.colors.length > 0) {
+        filteredProducts = filteredProducts.filter(product => {
+          const productText = `${product.title} ${product.description}`.toLowerCase();
+          return searchInfo.colors.some((color: string) => productText.includes(color));
+        });
+        console.log('After color filter:', filteredProducts.length);
+      }
+
+      // Sort by relevance (rating and discount)
+      filteredProducts.sort((a, b) => {
+        const aScore = (a.rating || 0) * 0.7 + (a.discountPercentage || 0) * 0.3;
+        const bScore = (b.rating || 0) * 0.7 + (b.discountPercentage || 0) * 0.3;
+        return bScore - aScore;
+      });
+
+      // Return top 6 products for better variety
+      const finalProducts = filteredProducts.slice(0, 6);
+      console.log('Final products returned:', finalProducts.length);
+      
+      return finalProducts;
     } catch (error) {
       console.error('Error finding products:', error);
       return [];
     }
   };
 
-  const generateBotResponse = (searchTerms: string, maxPrice: number | null, productsFound: Product[]) => {
+  const generateBotResponse = (searchInfo: any, productsFound: Product[]) => {
     if (productsFound.length === 0) {
+      let noResultsMessage = "I couldn't find any products";
+      
+      if (searchInfo.searchTerms && searchInfo.maxPrice) {
+        noResultsMessage += ` for "${searchInfo.searchTerms}" under ₹${searchInfo.maxPrice}`;
+      } else if (searchInfo.searchTerms) {
+        noResultsMessage += ` for "${searchInfo.searchTerms}"`;
+      } else if (searchInfo.maxPrice) {
+        noResultsMessage += ` under ₹${searchInfo.maxPrice}`;
+      }
+      
+      noResultsMessage += ". Let me suggest some alternatives:";
+      
       return {
-        text: "I couldn't find any products matching your criteria. Try searching for something else or browse our full collection.",
-        suggestions: ["Show me all products", "Try different category", "Popular items", "What's trending?"]
+        text: noResultsMessage,
+        suggestions: [
+          "Show me all products",
+          "Try different category", 
+          "Increase budget",
+          "Popular items",
+          "What's trending?"
+        ]
       };
     }
 
-    let response = `I found ${productsFound.length} great products for you`;
+    let response = `Great! I found ${productsFound.length} excellent product${productsFound.length > 1 ? 's' : ''}`;
     
-    if (searchTerms) {
-      response += ` related to "${searchTerms}"`;
+    if (searchInfo.searchTerms) {
+      response += ` for "${searchInfo.searchTerms}"`;
     }
     
-    if (maxPrice) {
-      response += ` under ₹${maxPrice}`;
+    if (searchInfo.maxPrice) {
+      response += ` under ₹${searchInfo.maxPrice}`;
     }
     
-    response += ". Here are some amazing options:";
+    if (searchInfo.colors && searchInfo.colors.length > 0) {
+      response += ` in ${searchInfo.colors.join(', ')}`;
+    }
+    
+    response += ". Here are the best matches:";
+    
+    const suggestions = [
+      "Show me more like these",
+      "Different price range",
+      "Other colors available",
+      "Similar categories",
+      "Add to wishlist"
+    ];
     
     return {
       text: response,
-      suggestions: ["Show me more like these", "Different price range", "Other categories", "Add to favorites"]
+      suggestions: suggestions.slice(0, 4)
     };
   };
 
@@ -234,13 +377,14 @@ const Chat = () => {
         return;
       }
 
-      // Check if message contains product search terms
-      const { searchTerms, maxPrice } = extractSearchTermsAndPrice(text);
+      // Enhanced search term extraction
+      const searchInfo = extractSearchTermsAndPrice(text);
+      console.log('Extracted search info:', searchInfo);
       
-      if (searchTerms || maxPrice) {
-        // Product search
-        const products = await findProducts(searchTerms, maxPrice);
-        const responseData = generateBotResponse(searchTerms, maxPrice, products);
+      if (searchInfo.searchTerms || searchInfo.maxPrice || searchInfo.colors.length > 0) {
+        // Product search with enhanced logic
+        const products = await findProducts(searchInfo);
+        const responseData = generateBotResponse(searchInfo, products);
         
         const botResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -265,12 +409,13 @@ const Chat = () => {
         setMessages(prev => [...prev, botResponse]);
       }
     } catch (error) {
+      console.error('Chat error:', error);
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble right now. Please try again later.",
+        text: "Sorry, I'm having trouble finding products right now. Please try again in a moment or try a different search.",
         isBot: true,
         timestamp: new Date(),
-        suggestions: ["Try again", "Browse products", "Contact support"]
+        suggestions: ["Try again", "Browse all products", "Contact support", "Popular items"]
       };
       setMessages(prev => [...prev, errorResponse]);
     } finally {
