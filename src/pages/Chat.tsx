@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Bot, User, ShoppingBag } from "lucide-react";
+import { Send, Bot, User, ShoppingBag, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Product, searchProducts, fetchProducts } from "@/api/products";
@@ -15,17 +15,31 @@ interface ChatMessage {
   isBot: boolean;
   timestamp: Date;
   products?: Product[];
+  suggestions?: string[];
 }
 
 const Chat = () => {
   useScrollToTop();
   const navigate = useNavigate();
+  
+  const suggestionMessages = [
+    "Show me shirts under ₹1000",
+    "I need a red dress",
+    "Find me sneakers under ₹2000",
+    "Show hoodies for winter",
+    "I want jeans under ₹1500",
+    "Find me accessories",
+    "Show me bags under ₹800",
+    "I need a jacket"
+  ];
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
-      text: "Hello! I'm your shopping assistant. I can help you find products. Try asking me something like 'show me shirts under 1000' or 'I need a red dress'.",
+      text: "Hello! I'm your shopping assistant. I can help you find products and answer questions about shopping. You can ask me things like:",
       isBot: true,
       timestamp: new Date(),
+      suggestions: suggestionMessages.slice(0, 4)
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -39,6 +53,66 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const getGreetingResponse = (message: string) => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage.includes('hey')) {
+      return {
+        text: "Hello! Welcome to our store! 👋 I'm here to help you find amazing products. What are you looking for today?",
+        suggestions: ["Show me trending products", "I need clothing", "Find me accessories", "What's on sale?"]
+      };
+    }
+    
+    if (lowerMessage.includes('how are you') || lowerMessage.includes('how do you do')) {
+      return {
+        text: "I'm doing great, thank you for asking! I'm excited to help you discover some amazing products. What can I help you find today?",
+        suggestions: suggestionMessages.slice(0, 4)
+      };
+    }
+    
+    if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
+      return {
+        text: "You're welcome! I'm always happy to help. Is there anything else you'd like to find?",
+        suggestions: ["Show me more products", "I need something specific", "What's popular?", "Browse categories"]
+      };
+    }
+    
+    if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye') || lowerMessage.includes('see you')) {
+      return {
+        text: "Goodbye! Thanks for shopping with us. Come back anytime if you need help finding products! 👋",
+        suggestions: []
+      };
+    }
+    
+    if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+      return {
+        text: "I can help you find products based on your preferences! Just tell me what you're looking for. I can search by category, price range, color, or specific items. Try asking me something like:",
+        suggestions: suggestionMessages.slice(0, 6)
+      };
+    }
+    
+    return null;
+  };
+
+  const getGeneralResponse = (message: string) => {
+    const responses = [
+      {
+        text: "I'd love to help you find some great products! Could you tell me what you're looking for? For example, you could ask:",
+        suggestions: suggestionMessages.slice(0, 4)
+      },
+      {
+        text: "That's interesting! Let me help you find some amazing products. What type of items are you shopping for today?",
+        suggestions: ["Clothing", "Accessories", "Shoes", "Bags"]
+      },
+      {
+        text: "I'm here to make your shopping experience amazing! What kind of products can I help you discover?",
+        suggestions: suggestionMessages.slice(2, 6)
+      }
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  };
 
   const extractSearchTermsAndPrice = (message: string) => {
     const lowerMessage = message.toLowerCase();
@@ -100,10 +174,13 @@ const Chat = () => {
 
   const generateBotResponse = (searchTerms: string, maxPrice: number | null, productsFound: Product[]) => {
     if (productsFound.length === 0) {
-      return `I couldn't find any products matching your criteria. Try searching for something else or browse our full collection.`;
+      return {
+        text: "I couldn't find any products matching your criteria. Try searching for something else or browse our full collection.",
+        suggestions: ["Show me all products", "Try different category", "Popular items", "What's trending?"]
+      };
     }
 
-    let response = `I found ${productsFound.length} products for you`;
+    let response = `I found ${productsFound.length} great products for you`;
     
     if (searchTerms) {
       response += ` related to "${searchTerms}"`;
@@ -113,44 +190,87 @@ const Chat = () => {
       response += ` under ₹${maxPrice}`;
     }
     
-    response += ". Here are some great options:";
+    response += ". Here are some amazing options:";
     
-    return response;
+    return {
+      text: response,
+      suggestions: ["Show me more like these", "Different price range", "Other categories", "Add to favorites"]
+    };
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    handleSendMessage(suggestion);
+  };
+
+  const handleSendMessage = async (messageText?: string) => {
+    const text = messageText || inputValue;
+    if (!text.trim()) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: text,
       isBot: false,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputValue("");
+    if (!messageText) setInputValue("");
     setIsLoading(true);
 
     try {
-      const { searchTerms, maxPrice } = extractSearchTermsAndPrice(inputValue);
-      const products = await findProducts(searchTerms, maxPrice);
+      // Check for greetings and common phrases first
+      const greetingResponse = getGreetingResponse(text);
       
-      const botResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: generateBotResponse(searchTerms, maxPrice, products),
-        isBot: true,
-        timestamp: new Date(),
-        products: products.length > 0 ? products : undefined,
-      };
+      if (greetingResponse) {
+        const botResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: greetingResponse.text,
+          isBot: true,
+          timestamp: new Date(),
+          suggestions: greetingResponse.suggestions,
+        };
+        setMessages(prev => [...prev, botResponse]);
+        return;
+      }
 
-      setMessages(prev => [...prev, botResponse]);
+      // Check if message contains product search terms
+      const { searchTerms, maxPrice } = extractSearchTermsAndPrice(text);
+      
+      if (searchTerms || maxPrice) {
+        // Product search
+        const products = await findProducts(searchTerms, maxPrice);
+        const responseData = generateBotResponse(searchTerms, maxPrice, products);
+        
+        const botResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: responseData.text,
+          isBot: true,
+          timestamp: new Date(),
+          products: products.length > 0 ? products : undefined,
+          suggestions: responseData.suggestions,
+        };
+
+        setMessages(prev => [...prev, botResponse]);
+      } else {
+        // General conversation
+        const generalResponse = getGeneralResponse(text);
+        const botResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: generalResponse.text,
+          isBot: true,
+          timestamp: new Date(),
+          suggestions: generalResponse.suggestions,
+        };
+        setMessages(prev => [...prev, botResponse]);
+      }
     } catch (error) {
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble finding products right now. Please try again later.",
+        text: "Sorry, I'm having trouble right now. Please try again later.",
         isBot: true,
         timestamp: new Date(),
+        suggestions: ["Try again", "Browse products", "Contact support"]
       };
       setMessages(prev => [...prev, errorResponse]);
     } finally {
@@ -181,7 +301,7 @@ const Chat = () => {
               </div>
               <div>
                 <h1 className="text-lg font-semibold">Shopping Assistant</h1>
-                <p className="text-sm text-gray-300">Ask me to find products for you!</p>
+                <p className="text-sm text-gray-300">Your personal shopping companion!</p>
               </div>
             </div>
           </div>
@@ -200,6 +320,24 @@ const Chat = () => {
                     )}
                     <div className="flex-1">
                       <p className="text-sm">{message.text}</p>
+                      
+                      {/* Suggestion Pills */}
+                      {message.suggestions && message.suggestions.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {message.suggestions.map((suggestion, index) => (
+                            <Button
+                              key={index}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-auto py-1 px-2 bg-white border-slate-300 hover:bg-slate-50"
+                              onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                              <Lightbulb className="h-3 w-3 mr-1" />
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                       
                       {/* Product Results */}
                       {message.products && (
@@ -259,6 +397,23 @@ const Chat = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Suggestions Bar */}
+          <div className="px-4 py-2 border-t bg-gray-50">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {suggestionMessages.slice(0, 4).map((suggestion, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs whitespace-nowrap flex-shrink-0"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* Input */}
           <div className="p-4 border-t bg-gray-50">
             <div className="flex gap-2">
@@ -266,12 +421,12 @@ const Chat = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me to find products... (e.g., 'show me shirts under 1000')"
+                placeholder="Type your message... (e.g., 'Hi', 'show me shirts under 1000')"
                 className="flex-1"
                 disabled={isLoading}
               />
               <Button 
-                onClick={handleSendMessage} 
+                onClick={() => handleSendMessage()} 
                 disabled={!inputValue.trim() || isLoading}
                 className="bg-slate-900 hover:bg-slate-800"
               >
