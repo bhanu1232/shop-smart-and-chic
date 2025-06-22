@@ -119,11 +119,11 @@ const Products = () => {
   // Filter and sort products (client-side) - only sort when filters change, not during infinite scroll
   const filteredAndSortedProducts = useMemo(() => {
     console.log("Filtering and sorting products, total:", allProducts.length);
-    
+
     // Check if filters have changed
     const currentFilters = { selectedCategory, sortBy, priceRange, searchQuery };
     const filtersChanged = JSON.stringify(lastFiltersRef.current) !== JSON.stringify(currentFilters);
-    
+
     // First filter
     const filtered = allProducts.filter((product) => {
       const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -152,17 +152,17 @@ const Products = () => {
             return 0;
         }
       });
-      
+
       // Update the ref after sorting
       lastFiltersRef.current = currentFilters;
     }
-    
+
     console.log("Filtered and sorted products:", result.length);
     return result;
   }, [allProducts, searchQuery, selectedCategory, priceRange, sortBy]);
 
   // Navigation handler - ensure proper type handling
-  const handleNavigate = useCallback((productId: number) => {
+  const handleNavigate = useCallback((productId: string) => {
     navigate(`/product/${productId}`);
   }, [navigate]);
 
@@ -212,7 +212,7 @@ const Products = () => {
         console.log("Total products after append:", updatedProducts.length);
         return updatedProducts;
       });
-      
+
       setSkip(prevSkip => prevSkip + newProducts.length);
       setHasMore(newProducts.length >= ITEMS_PER_PAGE);
 
@@ -349,7 +349,7 @@ const Products = () => {
           ...product,
           meta: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
         }));
-        
+
         // Replace products with search results
         setAllProducts(extendedResults);
         setHasMore(false);
@@ -370,7 +370,7 @@ const Products = () => {
   const handleSearch = useCallback((query: string) => {
     console.log("Search query:", query);
     setSearchQuery(query);
-    
+
     if (!query.trim()) {
       // If search is cleared, reload initial products and reset filters ref
       setAllProducts([]);
@@ -508,7 +508,7 @@ const Products = () => {
                     wishlistStatus={wishlistStatus[product.id.toString()] || false}
                     loadingWishlist={loadingWishlist[product.id.toString()] || false}
                     onWishlistToggle={() => handleWishlistToggle(product.id.toString())}
-                    onNavigate={() => handleNavigate(Number(product.id))}
+                    onNavigate={() => handleNavigate(product.id)}
                   />
                 </motion.div>
               ))}
