@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Bot, User, ShoppingBag, Lightbulb } from "lucide-react";
+import { Send, Bot, User, ShoppingBag, Lightbulb, Sparkles, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Product, searchProducts, fetchProducts } from "@/api/products";
@@ -24,16 +24,16 @@ const Chat = () => {
   const navigate = useNavigate();
   
   const defaultSuggestions = [
-    "Show me shirts under ₹1000",
-    "I need a red dress",
-    "Find me sneakers under ₹2000",
-    "Show hoodies for winter"
+    "Show me trending products",
+    "Find clothes under ₹1000",
+    "I need winter jackets",
+    "What's on sale today?"
   ];
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
-      text: "Hello! I'm your AI shopping assistant. I can help you find products and answer questions about shopping. Try asking me something!",
+      text: "🛍️ Hey there! I'm your AI shopping assistant powered by Gemini AI. I can help you discover amazing products, find great deals, and answer any shopping questions you have. What can I help you find today?",
       isBot: true,
       timestamp: new Date(),
       suggestions: defaultSuggestions
@@ -265,17 +265,24 @@ const Chat = () => {
         
         let aiResponse;
         if (products.length > 0) {
-          const context = `The user is looking for products. I found ${products.length} products for their search.`;
+          const context = `The user is looking for products. I found ${products.length} relevant products for their search: "${text}". Be enthusiastic about the results and highlight key features like price ranges, discounts, or popular items.`;
           aiResponse = await generateChatResponse(text, context);
           
-          // Generate product-specific suggestions
+          // Generate product-specific suggestions only if products were found
           const productSuggestions = await generateProductSearchSuggestions(text);
           if (productSuggestions.length > 0) {
             aiResponse.suggestions = productSuggestions;
           }
         } else {
-          const context = "The user is looking for products but I couldn't find any matching their criteria.";
+          const context = `The user is looking for products: "${text}" but I couldn't find any matching products. Apologize and suggest alternative search terms or broader categories.`;
           aiResponse = await generateChatResponse(text, context);
+          // Don't generate suggestions if no products found
+          aiResponse.suggestions = [
+            "Show me all products",
+            "Find trending items",
+            "Search for clothing",
+            "Browse accessories"
+          ];
         }
         
         const botResponse: ChatMessage = {
@@ -290,7 +297,7 @@ const Chat = () => {
         setMessages(prev => [...prev, botResponse]);
       } else {
         // General conversation using Gemini AI
-        const context = "The user is having a general conversation. Keep responses friendly and shopping-related.";
+        const context = "The user is having a general conversation. Be friendly, helpful, and try to guide them towards shopping-related topics. Keep responses conversational and engaging.";
         const aiResponse = await generateChatResponse(text, context);
         
         const botResponse: ChatMessage = {
@@ -306,7 +313,7 @@ const Chat = () => {
       console.error('Chat error:', error);
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble right now. Please try again in a moment!",
+        text: "Sorry, I'm having trouble connecting right now. Please try again in a moment! 😊",
         isBot: true,
         timestamp: new Date(),
         suggestions: defaultSuggestions
@@ -325,93 +332,142 @@ const Chat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="h-[70px]">
         <Navbar />
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-150px)] flex flex-col">
+        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 h-[calc(100vh-150px)] flex flex-col overflow-hidden">
           {/* Chat Header */}
-          <div className="p-4 border-b bg-slate-900 text-white rounded-t-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 rounded-full">
+          <div className="p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
                 <Bot className="h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold">AI Shopping Assistant</h1>
-                <p className="text-sm text-gray-300">Powered by Gemini AI - Your smart shopping companion!</p>
+                <h1 className="text-xl font-bold flex items-center gap-2">
+                  AI Shopping Assistant
+                  <Sparkles className="h-5 w-5 text-yellow-400 animate-pulse" />
+                </h1>
+                <p className="text-sm text-slate-300 flex items-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  Powered by Gemini AI - Your smart shopping companion!
+                </p>
               </div>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-white/50 to-slate-50/50">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[80%] ${message.isBot ? 'bg-gray-100' : 'bg-slate-900 text-white'} rounded-lg p-3`}>
-                  <div className="flex items-start gap-2">
+                <div className={`max-w-[85%] ${
+                  message.isBot 
+                    ? 'bg-white/90 backdrop-blur-sm border border-slate-200 shadow-md' 
+                    : 'bg-gradient-to-r from-slate-900 to-slate-700 text-white shadow-lg'
+                } rounded-2xl p-4 transition-all duration-200 hover:shadow-lg`}>
+                  <div className="flex items-start gap-3">
                     {message.isBot && (
-                      <Bot className="h-4 w-4 mt-1 text-slate-600" />
+                      <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex-shrink-0">
+                        <Bot className="h-4 w-4 text-white" />
+                      </div>
                     )}
                     {!message.isBot && (
-                      <User className="h-4 w-4 mt-1 text-gray-300" />
+                      <User className="h-5 w-5 mt-0.5 text-slate-300 flex-shrink-0" />
                     )}
-                    <div className="flex-1">
-                      <p className="text-sm">{message.text}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm leading-relaxed">{message.text}</p>
                       
-                      {/* Suggestion Pills */}
+                      {/* Enhanced Suggestion Pills */}
                       {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {message.suggestions.map((suggestion, index) => (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-auto py-1 px-2 bg-white border-slate-300 hover:bg-slate-50"
-                              onClick={() => handleSuggestionClick(suggestion)}
-                            >
-                              <Lightbulb className="h-3 w-3 mr-1" />
-                              {suggestion}
-                            </Button>
-                          ))}
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <Lightbulb className="h-3 w-3" />
+                            <span>Try asking:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {message.suggestions.map((suggestion, index) => (
+                              <Button
+                                key={index}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-auto py-2 px-3 bg-gradient-to-r from-white to-slate-50 border-slate-300 hover:from-slate-50 hover:to-slate-100 hover:border-slate-400 transition-all duration-200 rounded-full shadow-sm hover:shadow-md"
+                                onClick={() => handleSuggestionClick(suggestion)}
+                              >
+                                <Sparkles className="h-3 w-3 mr-1.5 text-blue-500" />
+                                {suggestion}
+                              </Button>
+                            ))}
+                          </div>
                         </div>
                       )}
                       
-                      {/* Product Results */}
+                      {/* Enhanced Product Results */}
                       {message.products && (
-                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {message.products.map((product) => (
-                            <Card 
-                              key={product.id} 
-                              className="cursor-pointer hover:shadow-md transition-shadow"
-                              onClick={() => navigate(`/product/${product.id}`)}
-                            >
-                              <CardContent className="p-3">
-                                <img
-                                  src={product.thumbnail}
-                                  alt={product.title}
-                                  className="w-full h-32 object-cover rounded mb-2"
-                                />
-                                <h4 className="text-sm font-medium line-clamp-2 mb-1">
-                                  {product.title}
-                                </h4>
-                                <p className="text-lg font-semibold text-slate-900">
-                                  ₹{product.price}
-                                </p>
-                                {product.discountPercentage > 0 && (
-                                  <p className="text-xs text-green-600">
-                                    {Math.round(product.discountPercentage)}% OFF
-                                  </p>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <ShoppingBag className="h-4 w-4 text-blue-600" />
+                            <span>Found {message.products.length} products for you:</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {message.products.map((product) => (
+                              <Card 
+                                key={product.id} 
+                                className="group cursor-pointer hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-blue-300 bg-white/90 backdrop-blur-sm overflow-hidden"
+                                onClick={() => navigate(`/product/${product.id}`)}
+                              >
+                                <CardContent className="p-0">
+                                  <div className="relative overflow-hidden">
+                                    <img
+                                      src={product.thumbnail}
+                                      alt={product.title}
+                                      className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    {product.discountPercentage > 0 && (
+                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        {Math.round(product.discountPercentage)}% OFF
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="p-3">
+                                    <h4 className="text-sm font-semibold line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
+                                      {product.title}
+                                    </h4>
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-lg font-bold text-slate-900">
+                                        ₹{product.price}
+                                      </p>
+                                      <div className="flex items-center gap-1">
+                                        <div className="flex">
+                                          {[...Array(5)].map((_, i) => (
+                                            <div
+                                              key={i}
+                                              className={`w-3 h-3 ${
+                                                i < Math.floor(product.rating)
+                                                  ? "text-yellow-400"
+                                                  : "text-gray-200"
+                                              }`}
+                                            >
+                                              ⭐
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <span className="text-xs text-slate-600">
+                                          ({product.rating})
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-400 mt-2 ml-8">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -420,13 +476,15 @@ const Chat = () => {
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-slate-600" />
+                <div className="bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl p-4 max-w-[80%] shadow-md">
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -436,38 +494,39 @@ const Chat = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestions Bar */}
-          <div className="px-4 py-2 border-t bg-gray-50">
+          {/* Enhanced Quick Suggestions Bar */}
+          <div className="px-6 py-3 bg-gradient-to-r from-slate-50 to-blue-50 border-t border-slate-200">
             <div className="flex gap-2 overflow-x-auto pb-2">
               {defaultSuggestions.map((suggestion, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
-                  className="text-xs whitespace-nowrap flex-shrink-0"
+                  className="text-xs whitespace-nowrap flex-shrink-0 bg-white/80 hover:bg-white border-slate-300 hover:border-blue-400 transition-all duration-200"
                   onClick={() => handleSuggestionClick(suggestion)}
                 >
+                  <Sparkles className="h-3 w-3 mr-1 text-blue-500" />
                   {suggestion}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Input */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="flex gap-2">
+          {/* Enhanced Input */}
+          <div className="p-6 bg-white/90 backdrop-blur-sm border-t border-slate-200">
+            <div className="flex gap-3">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything... (e.g., 'Hi there!' or 'show me shirts under 1000')"
-                className="flex-1"
+                placeholder="Ask me anything... (e.g., 'Hi there!' or 'show me shirts under ₹1000')"
+                className="flex-1 border-slate-300 focus:border-blue-400 focus:ring-blue-400 bg-white/90 backdrop-blur-sm"
                 disabled={isLoading}
               />
               <Button 
                 onClick={() => handleSendMessage()} 
                 disabled={!inputValue.trim() || isLoading}
-                className="bg-slate-900 hover:bg-slate-800"
+                className="bg-gradient-to-r from-slate-900 to-slate-700 hover:from-slate-800 hover:to-slate-600 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Send className="h-4 w-4" />
               </Button>

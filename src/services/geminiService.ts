@@ -14,22 +14,28 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 
 export const generateChatResponse = async (userMessage: string, context: string = ''): Promise<{ response: string; suggestions: string[] }> => {
   try {
-    const prompt = `You are a helpful shopping assistant for an e-commerce website. 
+    const prompt = `You are an enthusiastic and helpful AI shopping assistant for an e-commerce website. 
     ${context}
     
     User message: "${userMessage}"
     
     Please provide:
-    1. A helpful, friendly response (max 50 words)
-    2. 4 relevant follow-up suggestions that users might ask (each max 6 words)
+    1. A helpful, engaging response (max 60 words) that matches the user's tone and energy
+    2. 4 relevant, actionable follow-up suggestions that users might ask (each max 8 words)
+    
+    For suggestions, make them:
+    - Specific and actionable (like "Show me red dresses under ₹2000")
+    - Varied in price ranges and categories
+    - Engaging and conversational
+    - Only related to shopping if products were found, otherwise general helpful suggestions
     
     Format your response as JSON:
     {
-      "response": "your response here",
+      "response": "your enthusiastic response here",
       "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]
     }
     
-    Make suggestions specific to shopping like "Show me red dresses", "Find shoes under ₹2000", etc.`;
+    Match the user's energy level and be conversational!`;
 
     const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
@@ -43,7 +49,7 @@ export const generateChatResponse = async (userMessage: string, context: string 
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.8,
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 1024,
@@ -90,7 +96,7 @@ export const generateChatResponse = async (userMessage: string, context: string 
   } catch (error) {
     console.error('Gemini API error:', error);
     return {
-      response: "I'm here to help you find great products! What are you looking for?",
+      response: "I'm here to help you find amazing products! What are you looking for? 🛍️",
       suggestions: [
         "Show me shirts under ₹1000",
         "Find red dresses",
@@ -103,10 +109,21 @@ export const generateChatResponse = async (userMessage: string, context: string 
 
 export const generateProductSearchSuggestions = async (searchQuery: string): Promise<string[]> => {
   try {
-    const prompt = `Generate 4 related product search suggestions for: "${searchQuery}"
+    const prompt = `Based on the search query "${searchQuery}", generate 4 related and more specific product search suggestions.
     
-    Make them specific shopping queries like "Show me [item] under ₹[price]" or "Find [color] [item]".
-    Return only the suggestions, one per line.`;
+    Make them:
+    - More specific than the original query
+    - Include price ranges (like "under ₹1500", "under ₹3000")
+    - Include colors, styles, or specific features
+    - Be actionable shopping queries
+    
+    Examples:
+    - "Show me black sneakers under ₹2000"
+    - "Find formal shirts under ₹1500"
+    - "I need winter jackets"
+    - "Popular dresses this season"
+    
+    Return only 4 suggestions, one per line, without numbering.`;
 
     const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
@@ -120,7 +137,7 @@ export const generateProductSearchSuggestions = async (searchQuery: string): Pro
           }]
         }],
         generationConfig: {
-          temperature: 0.8,
+          temperature: 0.9,
           maxOutputTokens: 200,
         }
       }),
@@ -134,7 +151,8 @@ export const generateProductSearchSuggestions = async (searchQuery: string): Pro
     const textResponse = data.candidates[0]?.content?.parts[0]?.text;
 
     if (textResponse) {
-      return textResponse.split('\n').filter(line => line.trim()).slice(0, 4);
+      const suggestions = textResponse.split('\n').filter(line => line.trim()).slice(0, 4);
+      return suggestions.map(s => s.replace(/^\d+\.\s*/, '').trim());
     }
 
     return [];
