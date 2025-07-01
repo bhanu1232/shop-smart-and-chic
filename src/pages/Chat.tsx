@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Bot, User, ShoppingBag, Lightbulb, Sparkles, TrendingUp, Heart, Star, Zap } from "lucide-react";
+import { Send, Bot, User, ShoppingBag, Lightbulb, Sparkles, TrendingUp, Heart, Star, Zap, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Product, searchProducts, fetchProducts } from "@/api/products";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { generateChatResponse, generateProductSearchSuggestions } from "@/services/geminiService";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessage {
   id: string;
@@ -44,6 +45,7 @@ interface UserPreferences {
 const Chat = () => {
   useScrollToTop();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const defaultSuggestions = [
     "Show me trendy summer dresses",
@@ -101,6 +103,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
   const [conversationContext, setConversationContext] = useState<string>("");
+  const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -661,203 +664,230 @@ const Chat = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="h-[70px]">
+      {/* Mobile-first Navbar */}
+      <div className={`${isMobile ? 'h-[60px]' : 'h-[70px]'}`}>
         <Navbar />
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 h-[calc(100vh-150px)] flex flex-col overflow-hidden">
-          {/* Chat Header */}
-          <div className="p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gray-700/50 rounded-xl backdrop-blur-lg">
-                <Bot className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                  Sun Fashion Assistant
-                  <Sparkles className="h-5 w-5 text-yellow-400" />
-                </h1>
-                <p className="text-sm text-gray-300 flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4" />
-                  Your personal shopping guide
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className={`${isMobile ? 'px-2 py-2' : 'container mx-auto px-4 py-8'} max-w-6xl`}>
+        <div className={`bg-white rounded-xl shadow-lg border border-gray-100 ${isMobile ? 'h-[calc(100vh-80px)]' : 'h-[calc(100vh-150px)]'
+          } flex flex-col overflow-hidden`}>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[85%] ${message.isBot ? 'bg-gray-50 border border-gray-200' : 'bg-gradient-to-r from-gray-800 to-gray-900 text-white'
-                  } rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200`}>
-                  <div className="flex items-start gap-3">
-                    {message.isBot ? (
-                      <div className="p-1.5 bg-gray-700 rounded-lg flex-shrink-0">
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                    ) : (
-                      <User className="h-5 w-5 mt-0.5 text-gray-300 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm leading-relaxed">{message.text}</p>
-
-                      {/* Follow-up Questions */}
-                      {message.followUpQuestions && message.followUpQuestions.length > 0 && (
-                        <div className="mt-4 bg-blue-50/60 rounded-xl p-3 w-full max-w-full text-left">
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
-                            <Zap className="h-3 w-3" />
-                            <span>Quick questions:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.followUpQuestions.map((question, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                size="sm"
-                                className={`text-xs sm:text-sm h-auto py-2 px-4 rounded-full border shadow-sm text-left w-auto break-words ${message.isBot
-                                  ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300 text-blue-700'
-                                  : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
-                                  } transition-all duration-200`}
-                                onClick={() => handleSuggestionClick(question)}
-                              >
-                                <Heart className="h-3 w-3 mr-1.5" />
-                                {question}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Suggestions */}
-                      {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="mt-4 bg-yellow-50/60 rounded-xl p-3 w-full max-w-full text-left">
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
-                            <Lightbulb className="h-3 w-3" />
-                            <span>Quick suggestions:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.suggestions.map((suggestion, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                size="sm"
-                                className={`text-xs sm:text-sm h-auto py-2 px-4 rounded-full border shadow-sm text-left w-auto break-words ${message.isBot
-                                  ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
-                                  : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
-                                  } transition-all duration-200`}
-                                onClick={() => handleSuggestionClick(suggestion)}
-                              >
-                                <Sparkles className="h-3 w-3 mr-1.5" />
-                                {suggestion}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Products Grid */}
-                      {message.products && (
-                        <div className="mt-4 space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                            <ShoppingBag className="h-4 w-4 text-gray-600" />
-                            <span>Found {message.products.length} products for you:</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {message.products.map((product) => (
-                              <Card
-                                key={product.id}
-                                className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-gray-300 overflow-hidden"
-                                onClick={() => navigate(`/product/${product.id}`)}
-                              >
-                                <CardContent className="p-0">
-                                  <div className="relative overflow-hidden">
-                                    <img
-                                      src={product.thumbnail}
-                                      alt={product.title}
-                                      className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                    {product.discountPercentage > 0 && (
-                                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                        {Math.round(product.discountPercentage)}% OFF
-                                      </div>
-                                    )}
-                                    {product.rating >= 4.5 && (
-                                      <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                                        <Star className="h-3 w-3" />
-                                        Trending
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-3">
-                                    <h4 className="text-sm font-semibold line-clamp-2 mb-2 group-hover:text-gray-700">
-                                      {product.title}
-                                    </h4>
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-lg font-bold text-gray-900">
-                                        ₹{product.price}
-                                      </p>
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-sm text-yellow-500">★</span>
-                                        <span className="text-sm text-gray-600">
-                                          {product.rating.toFixed(1)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2 ml-8">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {/* Mobile-optimized Chat Header */}
+          <div className={`${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-r from-gray-800 to-gray-900 text-white`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`${isMobile ? 'p-2' : 'p-3'} bg-gray-700/50 rounded-xl backdrop-blur-lg`}>
+                  <Bot className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                </div>
+                <div>
+                  <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold flex items-center gap-2`}>
+                    Sun Fashion Assistant
+                    <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-yellow-400`} />
+                  </h1>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300 flex items-center gap-1`}>
+                    <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                    Your personal shopping guide
                   </p>
                 </div>
               </div>
-            ))}
 
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-w-[80%]">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-gray-700 rounded-lg">
-                      <Bot className="h-4 w-4 text-white" />
+              {/* Mobile menu button */}
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                  className="text-white hover:bg-gray-700/50"
+                >
+                  {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Messages Container */}
+          <div className="flex-1 overflow-y-auto">
+            <div className={`${isMobile ? 'p-3 space-y-4' : 'p-6 space-y-6'}`}>
+              {messages.map((message) => (
+                <div key={message.id} className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}>
+                  <div className={`${isMobile ? 'max-w-[90%]' : 'max-w-[85%]'} ${message.isBot ? 'bg-gray-50 border border-gray-200' : 'bg-gradient-to-r from-gray-800 to-gray-900 text-white'
+                    } rounded-xl ${isMobile ? 'p-3' : 'p-4'} shadow-sm hover:shadow-md transition-all duration-200`}>
+
+                    <div className="flex items-start gap-2">
+                      {message.isBot ? (
+                        <div className={`${isMobile ? 'p-1' : 'p-1.5'} bg-gray-700 rounded-lg flex-shrink-0`}>
+                          <Bot className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-white`} />
+                        </div>
+                      ) : (
+                        <User className={`${isMobile ? 'h-4 w-4 mt-0.5' : 'h-5 w-5 mt-0.5'} text-gray-300 flex-shrink-0`} />
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`${isMobile ? 'text-sm' : 'text-sm'} leading-relaxed`}>{message.text}</p>
+
+                        {/* Follow-up Questions */}
+                        {message.followUpQuestions && message.followUpQuestions.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Zap className="h-3 w-3" />
+                              <span>Quick questions:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {message.followUpQuestions.map((question, index) => (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  size="sm"
+                                  className={`text-xs h-auto py-2 px-3 ${message.isBot
+                                    ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300 text-blue-700'
+                                    : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
+                                    } rounded-full transition-all duration-200`}
+                                  onClick={() => handleSuggestionClick(question)}
+                                >
+                                  <Heart className="h-3 w-3 mr-1.5" />
+                                  {question}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Suggestions */}
+                        {message.suggestions && message.suggestions.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Lightbulb className="h-3 w-3" />
+                              <span>Quick suggestions:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {message.suggestions.map((suggestion, index) => (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  size="sm"
+                                  className={`text-xs h-auto py-2 px-3 ${message.isBot
+                                    ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
+                                    : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
+                                    } rounded-full transition-all duration-200`}
+                                  onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                  <Sparkles className="h-3 w-3 mr-1.5" />
+                                  {suggestion}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Mobile-optimized Products Grid */}
+                        {message.products && (
+                          <div className={`${isMobile ? 'mt-3 space-y-2' : 'mt-4 space-y-3'}`}>
+                            <div className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-sm'} font-medium text-gray-700`}>
+                              <ShoppingBag className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-gray-600`} />
+                              <span>Found {message.products.length} products:</span>
+                            </div>
+
+                            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 sm:grid-cols-2 gap-4'}`}>
+                              {message.products.map((product) => (
+                                <Card
+                                  key={product.id}
+                                  className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-gray-300 overflow-hidden"
+                                  onClick={() => navigate(`/product/${product.id}`)}
+                                >
+                                  <CardContent className="p-0">
+                                    <div className="relative overflow-hidden">
+                                      <img
+                                        src={product.thumbnail}
+                                        alt={product.title}
+                                        className={`w-full ${isMobile ? 'h-32' : 'h-40'} object-cover group-hover:scale-105 transition-transform duration-300`}
+                                      />
+                                      {product.discountPercentage > 0 && (
+                                        <div className={`absolute top-2 right-2 bg-red-500 text-white ${isMobile ? 'text-xs' : 'text-xs'} font-bold px-2 py-1 rounded-full`}>
+                                          {Math.round(product.discountPercentage)}% OFF
+                                        </div>
+                                      )}
+                                      {product.rating >= 4.5 && (
+                                        <div className={`absolute top-2 left-2 bg-yellow-500 text-white ${isMobile ? 'text-xs' : 'text-xs'} font-bold px-2 py-1 rounded-full flex items-center gap-1`}>
+                                          <Star className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
+                                          Trending
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className={`${isMobile ? 'p-2' : 'p-3'}`}>
+                                      <h4 className={`${isMobile ? 'text-sm' : 'text-sm'} font-semibold line-clamp-2 mb-2 group-hover:text-gray-700`}>
+                                        {isMobile ? product.title.substring(0, 40) + (product.title.length > 40 ? '...' : '') : product.title}
+                                      </h4>
+                                      <div className="flex items-center justify-between">
+                                        <p className={`${isMobile ? 'text-lg' : 'text-lg'} font-bold text-gray-900`}>
+                                          ₹{product.price}
+                                        </p>
+                                        <div className="flex items-center gap-1">
+                                          <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-yellow-500`}>★</span>
+                                          <span className={`${isMobile ? 'text-sm' : 'text-sm'} text-gray-600`}>
+                                            {product.rating.toFixed(1)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+
+                    <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-400 ${isMobile ? 'mt-1 ml-6' : 'mt-2 ml-8'}`}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile-optimized Loading State */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className={`bg-gray-50 border border-gray-200 rounded-xl ${isMobile ? 'p-3 max-w-[85%]' : 'p-4 max-w-[80%]'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`${isMobile ? 'p-1' : 'p-1.5'} bg-gray-700 rounded-lg`}>
+                        <Bot className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-white`} />
+                      </div>
+                      <div className="flex space-x-1">
+                        <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-gray-400 rounded-full animate-bounce`}></div>
+                        <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.1s' }}></div>
+                        <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
-          {/* Input Area */}
-          <div className="p-6 bg-white border-t border-gray-100">
-            <div className="flex gap-3">
+          {/* Mobile-optimized Input Area */}
+          <div className={`${isMobile ? 'p-3' : 'p-6'} bg-white border-t border-gray-100`}>
+            <div className={`flex gap-${isMobile ? '2' : '3'}`}>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me about our fashion collection..."
-                className="flex-1 border-gray-200 focus:border-gray-300 focus:ring-gray-300 bg-gray-50/50"
+                placeholder={isMobile ? "Ask about fashion..." : "Ask me about our fashion collection..."}
+                className={`flex-1 border-gray-200 focus:border-gray-300 focus:ring-gray-300 bg-gray-50/50 ${isMobile ? 'text-sm h-10' : ''
+                  }`}
                 disabled={isLoading}
               />
               <Button
                 onClick={() => handleSendMessage()}
                 disabled={!inputValue.trim() || isLoading}
-                className="bg-gray-900 hover:bg-gray-800 transition-all duration-200"
+                className={`bg-gray-900 hover:bg-gray-800 transition-all duration-200 ${isMobile ? 'px-3' : ''
+                  }`}
+                size={isMobile ? "sm" : "default"}
               >
-                <Send className="h-4 w-4" />
+                <Send className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
               </Button>
             </div>
           </div>
