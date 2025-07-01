@@ -1,9 +1,8 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Bot, User, ShoppingBag, Lightbulb, Sparkles, TrendingUp, Heart, Star, Zap } from "lucide-react";
+import { Send, Bot, User, ShoppingBag, Lightbulb, Sparkles, TrendingUp, Heart, Star, Zap, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Product, searchProducts, fetchProducts } from "@/api/products";
@@ -25,7 +24,7 @@ interface ChatMessage {
 interface SearchInfo {
   searchTerms: string;
   allTerms: string[];
-  maxPrice: number | null;
+  maxPrice: number | string | null;
   colors: string[];
   originalMessage: string;
   size?: string;
@@ -104,6 +103,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
   const [conversationContext, setConversationContext] = useState<string>("");
+  const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -205,7 +205,7 @@ const Chat = () => {
       /within ₹?(\d+)k?/g
     ];
 
-    let maxPrice: number | null = null;
+    let maxPrice = null;
     for (const pattern of pricePatterns) {
       const matches = [...lowerMessage.matchAll(pattern)];
       if (matches.length > 0) {
@@ -313,7 +313,7 @@ const Chat = () => {
         searchInfo.searchTerms.toLowerCase().includes('new') ||
         searchInfo.searchTerms.toLowerCase().includes('recent')) {
         products = await fetchProducts(30);
-        products.sort((a, b) => b.id - a.id);
+        products.sort((a, b) => b.id.localeCompare(a.id));
         return products.slice(0, 6);
       }
 
@@ -350,8 +350,12 @@ const Chat = () => {
       const filteredProducts = products.filter(product => {
         // Enhanced price filter
         if (searchInfo.maxPrice !== null) {
-          const maxPriceNum = searchInfo.maxPrice;
-          return Number(product.price) <= Number(maxPriceNum);
+          const maxPriceNum = typeof searchInfo.maxPrice === 'number'
+            ? searchInfo.maxPrice
+            : parseInt(searchInfo.maxPrice.toString().replace('k', '000'));
+
+          // Strict price filtering - fix the TypeScript error here
+          return !isNaN(maxPriceNum) && Number(product.price) <= Number(maxPriceNum);
         }
 
         // Color filter
@@ -375,11 +379,16 @@ const Chat = () => {
             score += 5;
           }
 
-          // Price-based scoring (prioritize items well under the max price)
+          // Price-based scoring (prioritize items well under the max price) - fix the TypeScript error here
           if (searchInfo.maxPrice !== null) {
-            const maxPriceNum = searchInfo.maxPrice;
-            const priceRatio = 1 - (Number(product.price) / Number(maxPriceNum));
-            score += priceRatio * 3;
+            const maxPriceNum = typeof searchInfo.maxPrice === 'number'
+              ? searchInfo.maxPrice
+              : parseInt(searchInfo.maxPrice.toString().replace('k', '000'));
+
+            if (!isNaN(maxPriceNum)) {
+              const priceRatio = 1 - (Number(product.price) / Number(maxPriceNum));
+              score += priceRatio * 3;
+            }
           }
 
           return score;
@@ -474,7 +483,7 @@ const Chat = () => {
   };
 
   const generateDynamicSuggestions = async (searchInfo: SearchInfo, products: Product[]) => {
-    if (products.length === 0) return [];
+    if (products.length === 0) return defaultSuggestions;
 
     // Get unique categories and styles from found products
     const categories = [...new Set(products.map(p => p.category))];
@@ -592,7 +601,7 @@ const Chat = () => {
         } else {
           const context = `The user is looking for fashion items: "${text}" but I couldn't find exact matches. Suggest similar fashion categories or trending styles.`;
           aiResponse = await generateChatResponse(text, context);
-          aiResponse.suggestions = [];
+          aiResponse.suggestions = defaultSuggestions;
         }
 
         // Generate follow-up questions based on intent
@@ -626,7 +635,7 @@ const Chat = () => {
           text: aiResponse.response,
           isBot: true,
           timestamp: new Date(),
-          suggestions: showSuggestions ? [] : [],
+          suggestions: showSuggestions ? defaultSuggestions : [],
           followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined
         };
         setMessages(prev => [...prev, botResponse]);
@@ -655,31 +664,45 @@ const Chat = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+      {/* Mobile-first Navbar */}
+      <div className={`${isMobile ? 'h-[60px]' : 'h-[70px]'}`}>
         <Navbar />
       </div>
 
-      {/* Chat Container - Full height with proper mobile spacing */}
-      <div className={`${isMobile ? 'pt-16' : 'pt-20'} h-screen flex flex-col`}>
-        <div className={`flex-1 flex flex-col bg-white ${isMobile ? 'mx-0' : 'mx-4 my-4 rounded-xl shadow-lg border border-gray-100'} overflow-hidden`}>
-          
-          {/* Chat Header */}
-          <div className={`${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-r from-gray-800 to-gray-900 text-white flex-shrink-0`}>
-            <div className="flex items-center gap-3">
-              <div className={`${isMobile ? 'p-2' : 'p-3'} bg-gray-700/50 rounded-xl backdrop-blur-lg`}>
-                <Bot className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+      <div className={`${isMobile ? 'px-2 py-2' : 'container mx-auto px-4 py-8'} max-w-6xl`}>
+        <div className={`bg-white rounded-xl shadow-lg border border-gray-100 ${isMobile ? 'h-[calc(100vh-80px)]' : 'h-[calc(100vh-150px)]'
+          } flex flex-col overflow-hidden`}>
+
+          {/* Mobile-optimized Chat Header */}
+          <div className={`${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-r from-gray-800 to-gray-900 text-white`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`${isMobile ? 'p-2' : 'p-3'} bg-gray-700/50 rounded-xl backdrop-blur-lg`}>
+                  <Bot className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                </div>
+                <div>
+                  <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold flex items-center gap-2`}>
+                    Sun Fashion Assistant
+                    <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-yellow-400`} />
+                  </h1>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300 flex items-center gap-1`}>
+                    <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                    Your personal shopping guide
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold flex items-center gap-2`}>
-                  Sun Fashion Assistant
-                  <Sparkles className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-yellow-400`} />
-                </h1>
-                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300 flex items-center gap-1`}>
-                  <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                  Your personal shopping guide
-                </p>
-              </div>
+
+              {/* Mobile menu button */}
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                  className="text-white hover:bg-gray-700/50"
+                >
+                  {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -735,7 +758,7 @@ const Chat = () => {
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <Lightbulb className="h-3 w-3" />
-                              <span>Try these:</span>
+                              <span>Quick suggestions:</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {message.suggestions.map((suggestion, index) => (
@@ -757,7 +780,7 @@ const Chat = () => {
                           </div>
                         )}
 
-                        {/* Products Grid */}
+                        {/* Mobile-optimized Products Grid */}
                         {message.products && (
                           <div className={`${isMobile ? 'mt-3 space-y-2' : 'mt-4 space-y-3'}`}>
                             <div className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-sm'} font-medium text-gray-700`}>
@@ -823,7 +846,7 @@ const Chat = () => {
                 </div>
               ))}
 
-              {/* Loading State */}
+              {/* Mobile-optimized Loading State */}
               {isLoading && (
                 <div className="flex justify-start">
                   <div className={`bg-gray-50 border border-gray-200 rounded-xl ${isMobile ? 'p-3 max-w-[85%]' : 'p-4 max-w-[80%]'}`}>
@@ -845,9 +868,9 @@ const Chat = () => {
             </div>
           </div>
 
-          {/* Input Area - Fixed at bottom */}
-          <div className={`${isMobile ? 'p-3' : 'p-6'} bg-white border-t border-gray-100 flex-shrink-0`}>
-            <div className="flex gap-2">
+          {/* Mobile-optimized Input Area */}
+          <div className={`${isMobile ? 'p-3' : 'p-6'} bg-white border-t border-gray-100`}>
+            <div className={`flex gap-${isMobile ? '2' : '3'}`}>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
