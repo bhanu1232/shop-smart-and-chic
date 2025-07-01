@@ -705,8 +705,8 @@ const Chat = () => {
 
                       {/* Follow-up Questions */}
                       {message.followUpQuestions && message.followUpQuestions.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="mt-4 bg-blue-50/60 rounded-xl p-3 w-full max-w-full text-left">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
                             <Zap className="h-3 w-3" />
                             <span>Quick questions:</span>
                           </div>
@@ -716,10 +716,10 @@ const Chat = () => {
                                 key={index}
                                 variant="outline"
                                 size="sm"
-                                className={`text-xs h-auto py-2 px-3 ${message.isBot
+                                className={`text-xs sm:text-sm h-auto py-2 px-4 rounded-full border shadow-sm text-left w-auto break-words ${message.isBot
                                   ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300 text-blue-700'
                                   : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
-                                  } rounded-full transition-all duration-200`}
+                                  } transition-all duration-200`}
                                 onClick={() => handleSuggestionClick(question)}
                               >
                                 <Heart className="h-3 w-3 mr-1.5" />
@@ -732,8 +732,8 @@ const Chat = () => {
 
                       {/* Suggestions */}
                       {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="mt-4 bg-yellow-50/60 rounded-xl p-3 w-full max-w-full text-left">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
                             <Lightbulb className="h-3 w-3" />
                             <span>Quick suggestions:</span>
                           </div>
@@ -743,10 +743,10 @@ const Chat = () => {
                                 key={index}
                                 variant="outline"
                                 size="sm"
-                                className={`text-xs h-auto py-2 px-3 ${message.isBot
+                                className={`text-xs sm:text-sm h-auto py-2 px-4 rounded-full border shadow-sm text-left w-auto break-words ${message.isBot
                                   ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
                                   : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700'
-                                  } rounded-full transition-all duration-200`}
+                                  } transition-all duration-200`}
                                 onClick={() => handleSuggestionClick(suggestion)}
                               >
                                 <Sparkles className="h-3 w-3 mr-1.5" />
