@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -350,7 +351,7 @@ const Chat = () => {
         // Enhanced price filter
         if (searchInfo.maxPrice !== null) {
           const maxPriceNum = searchInfo.maxPrice;
-          return product.price <= maxPriceNum;
+          return Number(product.price) <= Number(maxPriceNum);
         }
 
         // Color filter
