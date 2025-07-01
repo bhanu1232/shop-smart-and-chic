@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,7 @@ interface ChatMessage {
 interface SearchInfo {
   searchTerms: string;
   allTerms: string[];
-  maxPrice: number | string | null;
+  maxPrice: number | null;
   colors: string[];
   originalMessage: string;
   size?: string;
@@ -205,7 +204,7 @@ const Chat = () => {
       /within ₹?(\d+)k?/g
     ];
 
-    let maxPrice = null;
+    let maxPrice: number | null = null;
     for (const pattern of pricePatterns) {
       const matches = [...lowerMessage.matchAll(pattern)];
       if (matches.length > 0) {
@@ -350,12 +349,8 @@ const Chat = () => {
       const filteredProducts = products.filter(product => {
         // Enhanced price filter
         if (searchInfo.maxPrice !== null) {
-          const maxPriceNum = typeof searchInfo.maxPrice === 'number'
-            ? searchInfo.maxPrice
-            : parseInt(searchInfo.maxPrice.toString().replace('k', '000'));
-
-          // Strict price filtering
-          return !isNaN(maxPriceNum) && product.price <= maxPriceNum;
+          const maxPriceNum = searchInfo.maxPrice;
+          return product.price <= maxPriceNum;
         }
 
         // Color filter
@@ -381,14 +376,9 @@ const Chat = () => {
 
           // Price-based scoring (prioritize items well under the max price)
           if (searchInfo.maxPrice !== null) {
-            const maxPriceNum = typeof searchInfo.maxPrice === 'number'
-              ? searchInfo.maxPrice
-              : parseInt(searchInfo.maxPrice.toString().replace('k', '000'));
-
-            if (!isNaN(maxPriceNum)) {
-              const priceRatio = 1 - (product.price / maxPriceNum);
-              score += priceRatio * 3;
-            }
+            const maxPriceNum = searchInfo.maxPrice;
+            const priceRatio = 1 - (product.price / maxPriceNum);
+            score += priceRatio * 3;
           }
 
           return score;
