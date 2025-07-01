@@ -377,7 +377,7 @@ const Chat = () => {
           // Price-based scoring (prioritize items well under the max price)
           if (searchInfo.maxPrice !== null) {
             const maxPriceNum = searchInfo.maxPrice;
-            const priceRatio = 1 - (product.price / maxPriceNum);
+            const priceRatio = 1 - (Number(product.price) / Number(maxPriceNum));
             score += priceRatio * 3;
           }
 
