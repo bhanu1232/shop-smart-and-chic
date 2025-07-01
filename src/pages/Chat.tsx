@@ -669,8 +669,8 @@ const Chat = () => {
         <Navbar />
       </div>
 
-      <div className={`${isMobile ? 'px-2 py-2' : 'container mx-auto px-4 py-8'} max-w-6xl`}>
-        <div className={`bg-white rounded-xl shadow-lg border border-gray-100 ${isMobile ? 'h-[calc(100vh-80px)]' : 'h-[calc(100vh-150px)]'
+      <div className={`${isMobile ? 'px-0 py-0' : 'container mx-auto px-4 py-8'} max-w-6xl`}>
+        <div className={`bg-white rounded-xl ${isMobile ? 'h-[calc(100vh-80px)] rounded-none' : 'h-[calc(100vh-150px)]'
           } flex flex-col overflow-hidden`}>
 
           {/* Mobile-optimized Chat Header */}
@@ -691,18 +691,6 @@ const Chat = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Mobile menu button */}
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className="text-white hover:bg-gray-700/50"
-                >
-                  {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
-              )}
             </div>
           </div>
 
