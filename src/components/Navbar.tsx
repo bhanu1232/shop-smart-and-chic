@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Menu, User, MessageCircle } from "lucide-react";
+import { ShoppingCart, Menu, User, MessageCircle, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
@@ -60,6 +60,14 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center gap-8">
                         <Button variant="ghost" onClick={() => navigate('/products')}>
                             Products
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => navigate('/stylist')}
+                            className="bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700"
+                        >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            AI Stylist
                         </Button>
                         <Button variant="ghost" onClick={() => navigate('/about')}>
                             About
@@ -145,6 +153,14 @@ const Navbar = () => {
                         <div className="flex flex-col gap-2">
                             <Button variant="ghost" onClick={() => navigate('/products')}>
                                 Products
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => navigate('/stylist')}
+                                className="bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700"
+                            >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                AI Stylist
                             </Button>
                             <Button variant="ghost" onClick={() => navigate('/about')}>
                                 About

@@ -9,7 +9,8 @@ import { ShoppingCart, Search, Star, Heart, Grid, List, User, Filter, ChevronDow
 import { useNavigate } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Product as ApiProduct, fetchProducts, searchProducts } from "@/api/products";
+import { Product as ApiProduct, ProductsResponse, fetchProducts, searchProducts } from "@/api/products";
+import { DocumentSnapshot } from "firebase/firestore";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useAuth } from "@/context/AuthContext";
 import SignInModal from "@/components/SignInModal";
@@ -99,7 +100,7 @@ const Products = () => {
   // Infinite scroll states
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [skip, setSkip] = useState(0);
+  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
@@ -183,23 +184,23 @@ const Products = () => {
     }
 
     try {
-      console.log("Loading more products, skip:", skip);
+      console.log("Loading more products with cursor");
       setIsLoadingMore(true);
-      // Use a larger limit to ensure we get enough products after filtering
-      const newProducts = await fetchProducts(ITEMS_PER_PAGE + 3, skip);
-      console.log("Loaded products:", newProducts.length);
 
-      if (newProducts.length === 0) {
+      const response: ProductsResponse = await fetchProducts(ITEMS_PER_PAGE, lastDoc);
+      console.log("Loaded products:", response.products.length, "Has more:", response.hasMore);
+
+      if (response.products.length === 0) {
         setHasMore(false);
         console.log("No more products available");
         return;
       }
 
-      const extendedProducts: Product[] = newProducts.map(product => ({
+      const extendedProducts: Product[] = response.products.map(product => ({
         ...product,
         meta: {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: product.meta?.createdAt || new Date().toISOString(),
+          updatedAt: product.meta?.updatedAt || new Date().toISOString()
         }
       }));
 
@@ -213,8 +214,8 @@ const Products = () => {
         return updatedProducts;
       });
 
-      setSkip(prevSkip => prevSkip + newProducts.length);
-      setHasMore(newProducts.length >= ITEMS_PER_PAGE);
+      setLastDoc(response.lastDoc);
+      setHasMore(response.hasMore);
 
       // Update wishlist status for new products in the background
       if (isAuthenticated && user) {
@@ -236,7 +237,7 @@ const Products = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [skip, isLoadingMore, hasMore, isAuthenticated, user, searchQuery]);
+  }, [lastDoc, isLoadingMore, hasMore, isAuthenticated, user, searchQuery]);
 
   // Setup Intersection Observer
   useEffect(() => {
@@ -287,20 +288,20 @@ const Products = () => {
       console.log("Loading initial products");
       setLoading(true);
 
-      const data = await fetchProducts(ITEMS_PER_PAGE, 0);
-      console.log("Initial products loaded:", data.length);
+      const response: ProductsResponse = await fetchProducts(ITEMS_PER_PAGE, null);
+      console.log("Initial products loaded:", response.products.length, "Has more:", response.hasMore);
 
-      const extendedProducts: Product[] = data.map(product => ({
+      const extendedProducts: Product[] = response.products.map(product => ({
         ...product,
         meta: {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: product.meta?.createdAt || new Date().toISOString(),
+          updatedAt: product.meta?.updatedAt || new Date().toISOString()
         }
       }));
 
       setAllProducts(extendedProducts);
-      setSkip(ITEMS_PER_PAGE);
-      setHasMore(data.length === ITEMS_PER_PAGE);
+      setLastDoc(response.lastDoc);
+      setHasMore(response.hasMore);
 
       // Update wishlist status for initial products
       if (isAuthenticated && user) {
@@ -353,7 +354,7 @@ const Products = () => {
         // Replace products with search results
         setAllProducts(extendedResults);
         setHasMore(false);
-        setSkip(0);
+        setLastDoc(null);
         // Reset filters ref for search results
         lastFiltersRef.current = { selectedCategory, sortBy, priceRange, searchQuery: query };
       } catch (error) {
@@ -374,7 +375,7 @@ const Products = () => {
     if (!query.trim()) {
       // If search is cleared, reload initial products and reset filters ref
       setAllProducts([]);
-      setSkip(0);
+      setLastDoc(null);
       setHasMore(true);
       lastFiltersRef.current = { selectedCategory, sortBy, priceRange, searchQuery: "" };
       loadProducts();

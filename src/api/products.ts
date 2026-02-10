@@ -1,3 +1,6 @@
+import { db } from '@/config/firebase';
+import { collection, getDocs, query, limit as firestoreLimit, where, orderBy, startAfter, DocumentSnapshot } from 'firebase/firestore';
+
 export interface Product {
   id: string;
   title: string;
@@ -33,109 +36,170 @@ export interface Product {
   minimumOrderQuantity?: number;
 }
 
-export const fetchProducts = async (limit: number = 10, skip: number = 0) => {
+export interface ProductsResponse {
+  products: Product[];
+  lastDoc: DocumentSnapshot | null;
+  hasMore: boolean;
+}
+
+/**
+ * Fetch products from Firebase with cursor-based pagination
+ */
+export const fetchProducts = async (
+  limit: number = 10,
+  lastDoc: DocumentSnapshot | null = null
+): Promise<ProductsResponse> => {
   try {
-    const response = await fetch(`https://items-api-ivory.vercel.app/api/products?limit=${limit}&skip=${skip}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch products');
+    const productsRef = collection(db, 'products');
+
+    // Build query with cursor-based pagination
+    let q = query(
+      productsRef,
+      orderBy('title'), // Order by title for consistent pagination
+      firestoreLimit(limit + 1) // Fetch one extra to check if there are more
+    );
+
+    // If we have a last document, start after it
+    if (lastDoc) {
+      q = query(
+        productsRef,
+        orderBy('title'),
+        startAfter(lastDoc),
+        firestoreLimit(limit + 1)
+      );
     }
-    const data = await response.json();
-    return data.products;
+
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs;
+
+    // Check if there are more products
+    const hasMore = docs.length > limit;
+
+    // Get the actual products (excluding the extra one)
+    const productDocs = hasMore ? docs.slice(0, limit) : docs;
+
+    const products: Product[] = productDocs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    } as Product));
+
+    // Get the last document for next pagination
+    const newLastDoc = productDocs.length > 0 ? productDocs[productDocs.length - 1] : null;
+
+    return {
+      products,
+      lastDoc: newLastDoc,
+      hasMore
+    };
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching products from Firebase:', error);
     throw error;
   }
 };
 
+/**
+ * Fetch product by ID from Firebase
+ */
 export async function fetchProductById(id: string): Promise<Product> {
-  const response = await fetch(`https://items-api-ivory.vercel.app/api/products/${id}`);
-  if (!response.ok) {
-    throw new Error('Product not found');
-  }
-  return response.json();
-}
-
-export async function searchProducts(query: string): Promise<Product[]> {
-  const response = await fetch(`https://items-api-ivory.vercel.app/api/products/search?q=${encodeURIComponent(query)}`);
-  if (!response.ok) {
-    throw new Error('Failed to search products');
-  }
-  const data = await response.json();
-  return data.products;
-}
-
-export async function createProduct(productData: Omit<Product, "id">): Promise<Product> {
   try {
-    const response = await fetch('https://items-api-ivory.vercel.app/products', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(productData),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to create product');
+    const productsRef = collection(db, 'products');
+    const snapshot = await getDocs(productsRef);
+
+    const doc = snapshot.docs.find(d => d.id === id);
+    if (!doc) {
+      throw new Error('Product not found');
     }
-    
-    return await response.json();
+
+    return {
+      id: doc.id,
+      ...doc.data()
+    } as Product;
   } catch (error) {
-    console.error('Error creating product:', error);
+    console.error('Error fetching product by ID:', error);
     throw error;
   }
 }
 
-export async function updateProduct(id: string, productData: Partial<Product>): Promise<Product> {
+/**
+ * Search products in Firebase
+ */
+export async function searchProducts(searchQuery: string): Promise<Product[]> {
   try {
-    const response = await fetch(`https://items-api-ivory.vercel.app/api/products/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(productData),
+    const productsRef = collection(db, 'products');
+    const snapshot = await getDocs(productsRef);
+
+    const lowerQuery = searchQuery.toLowerCase();
+    const products: Product[] = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const title = (data.title || '').toLowerCase();
+      const description = (data.description || '').toLowerCase();
+      const category = (data.category || '').toLowerCase();
+      const brand = (data.brand || '').toLowerCase();
+
+      if (
+        title.includes(lowerQuery) ||
+        description.includes(lowerQuery) ||
+        category.includes(lowerQuery) ||
+        brand.includes(lowerQuery)
+      ) {
+        products.push({
+          id: doc.id,
+          ...data
+        } as Product);
+      }
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to update product');
-    }
-    
-    return await response.json();
+
+    return products;
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('Error searching products:', error);
     throw error;
   }
 }
 
-export async function deleteProduct(id: string): Promise<void> {
-  try {
-    const response = await fetch(`https://items-api-ivory.vercel.app/products/${id}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to delete product');
-    }
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    throw error;
-  }
-}
-
+/**
+ * Fetch all unique categories
+ */
 export async function fetchCategories(): Promise<string[]> {
-  const response = await fetch('https://items-api-ivory.vercel.app/api/products/categories');
-  if (!response.ok) {
-    throw new Error('Failed to fetch categories');
+  try {
+    const productsRef = collection(db, 'products');
+    const snapshot = await getDocs(productsRef);
+
+    const categories = new Set<string>();
+    snapshot.forEach((doc) => {
+      const category = doc.data().category;
+      if (category) {
+        categories.add(category);
+      }
+    });
+
+    return Array.from(categories).sort();
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
   }
-  return response.json();
 }
 
+/**
+ * Fetch all unique brands
+ */
 export async function fetchBrands(): Promise<string[]> {
-  const response = await fetch('https://items-api-ivory.vercel.app/api/products/brands');
-  if (!response.ok) {
-    throw new Error('Failed to fetch brands');
+  try {
+    const productsRef = collection(db, 'products');
+    const snapshot = await getDocs(productsRef);
+
+    const brands = new Set<string>();
+    snapshot.forEach((doc) => {
+      const brand = doc.data().brand;
+      if (brand) {
+        brands.add(brand);
+      }
+    });
+
+    return Array.from(brands).sort();
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+    throw error;
   }
-  return response.json();
 }

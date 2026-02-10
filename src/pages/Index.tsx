@@ -29,8 +29,8 @@ const Index = () => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const data = await fetchProducts();
-        setProducts(data);
+        const response = await fetchProducts(8); // Fetch 8 products for home page
+        setProducts(response.products);
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
